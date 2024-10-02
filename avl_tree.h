@@ -1,6 +1,9 @@
 #ifndef AVL_TREE_H
 #define AVL_TREE_H
 
+#include <vector>  
+#include <utility> 
+
 struct AVLNode {
     int key;
     int value;
@@ -25,6 +28,8 @@ public:
     AVLTree();
     void put(int key, int value);
     int get(int key);
+    // scan operation (returns sorted key-value pairs)
+    std::vector<std::pair<int, int>> scan();
 };
 
 #endif

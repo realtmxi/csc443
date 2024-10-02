@@ -106,6 +106,18 @@ private:
             return node->value;
     }
 
+    void inorderTraversal(AVLNode* node, std::vector<std::pair<int, int>>& result) 
+    {
+        if (node == nullptr)
+            return;
+        // Recursively traverse the left subtree
+        inorderTraversal(node->left, result);
+        // Visit the current node and add its key-value pair to the result vector
+        result.push_back({node->key, node->value});
+        // Recursively traverse the right subtree
+        inorderTraversal(node->right, result);
+    }
+
 public:
     AVLTree() : root(nullptr) {}
 
@@ -117,5 +129,11 @@ public:
         return get (root, key);
     }
 
+    // Scan function to get key-value pairs in sorted order (added)
+    std::vector<std::pair<int, int>> scan() {
+        std::vector<std::pair<int, int>> result;
+        inorderTraversal(root, result); 
+        return result;
+    }
 };
 
