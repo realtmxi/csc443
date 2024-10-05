@@ -1,8 +1,12 @@
 # CSC443 Project Assignment
 Greg Sherman, Patrick Zhou, Murphy Tian
 
-## Compiling
-- Run `make main && ./main`
+## Format
+- Install `clang-format` on your system
+- Run `make format` to format all files
 
-## Testing
+## Test
 - Run `make tests && ./tests`
+
+## Run
+- Run `make main && ./main`
