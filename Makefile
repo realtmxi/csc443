@@ -1,13 +1,13 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
-all: kv_store tests
+all: main tests
 
-kv_store: main.cpp kv_store.cpp
-	$(CXX) $(CXXFLAGS) -o kv_store main.cpp kv_store.cpp
+main: main.cpp kv_store.cpp avl_tree.cpp
+	$(CXX) $(CXXFLAGS) -o main main.cpp kv_store.cpp avl_tree.cpp
 
-tests: tests.cpp kv_store.cpp
-	$(CXX) $(CXXFLAGS) -o tests tests.cpp kv_store.cpp
+tests: tests.cpp kv_store.cpp avl_tree.cpp
+	$(CXX) $(CXXFLAGS) -o tests tests.cpp kv_store.cpp avl_tree.cpp
 
 clean:
-	rm -f kv_store tests
+	rm -f main tests

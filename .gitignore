@@ -1,1 +1,5 @@
+*.o
+*.obj
 
+kv_store
+tests
