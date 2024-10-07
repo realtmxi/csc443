@@ -6,7 +6,7 @@ AVLNode::AVLNode(int k, int v)
     : key(k), value(v), left(nullptr), right(nullptr), height(1) {}
 
 AVLTree::AVLTree()
-    : root(nullptr) {}
+    : root(nullptr), size(0) {}
 
 int
 AVLTree::height(AVLNode *n)
@@ -107,23 +107,10 @@ AVLTree::get(AVLNode *node, int key)
 }
 
 void
-AVLTree::inorderTraversal(AVLNode *node,
-                          std::vector<std::pair<int, int>> &result)
-{
-    if (node == nullptr)
-        return;
-    // Recursively traverse the left subtree
-    inorderTraversal(node->left, result);
-    // Visit the current node and add its key-value pair to the result vector
-    result.push_back({node->key, node->value});
-    // Recursively traverse the right subtree
-    inorderTraversal(node->right, result);
-}
-
-void
 AVLTree::put(int key, int value)
 {
     root = insert(root, key, value);
+    size++;
 }
 
 int
@@ -132,11 +119,60 @@ AVLTree::get(int key)
     return get(root, key);
 }
 
-// Scan function to get key-value pairs in sorted order (added)
+void
+AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
+{
+    if (node == nullptr)
+        return;
+
+    // Go left if key1 is less than the current key
+    if (key1 < node->key)
+    {
+        inorderTraversal(node->left, result, key1, key2);
+    }
+
+    // Add to result if the key is within the range
+    if (key1 <= node->key && node->key <= key2)
+    {
+        result.push_back({node->key, node->value});
+    }
+
+    // Go right if key2 is greater than the current key
+    if (key2 > node->key)
+    {
+        inorderTraversal(node->right, result, key1, key2);
+    }
+}
+
 std::vector<std::pair<int, int>>
-AVLTree::scan()
+AVLTree::scan(int key1, int key2)
 {
     std::vector<std::pair<int, int>> result;
-    inorderTraversal(root, result);
+    inorderTraversal(root, result, key1, key2);
     return result;
+}
+
+void
+AVLTree::clear()
+{
+    clear(root);
+    root = nullptr;
+    size = 0;
+}
+
+void
+AVLTree::clear(AVLNode *node)
+{
+    if (node == nullptr)
+        return;
+
+    clear(node->left);
+    clear(node->right);
+    delete node;
+}
+
+size_t
+AVLTree::getSize()
+{
+    return size;
 }

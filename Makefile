@@ -1,19 +1,20 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
-SOURCES = main.cpp kv_store.cpp avl_tree.cpp tests.cpp
-HEADERS = avl_tree.h kv_store.h
+CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp test/tests.cpp
+HFILES = src/avl_tree.h src/database.h
 
-all: main tests
+main: src/main.cpp src/avl_tree.cpp src/database.cpp
+	$(CXX) $(CXXFLAGS) -o main src/main.cpp src/avl_tree.cpp src/database.cpp
 
-main: main.cpp kv_store.cpp avl_tree.cpp
-	$(CXX) $(CXXFLAGS) -o main main.cpp kv_store.cpp avl_tree.cpp
-
-tests: tests.cpp kv_store.cpp avl_tree.cpp
-	$(CXX) $(CXXFLAGS) -o tests tests.cpp kv_store.cpp avl_tree.cpp
-
-format:
-	clang-format -i $(SOURCES) $(HEADERS)
+tests: test/tests.cpp src/avl_tree.cpp src/database.cpp
+	$(CXX) $(CXXFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp
 
 clean:
 	rm -f main tests
+
+test: tests
+	./tests
+
+format:
+	clang-format -i $(CFILES) $(HFILES)

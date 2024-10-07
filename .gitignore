@@ -1,5 +1,6 @@
 *.o
 *.obj
 
-kv_store
+main
 tests
+db/

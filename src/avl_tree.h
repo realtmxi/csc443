@@ -3,7 +3,6 @@
 
 #include <utility>
 #include <vector>
-
 struct AVLNode
 {
     int key;
@@ -19,6 +18,7 @@ class AVLTree
 {
    private:
     AVLNode *root;
+    size_t size;
     AVLNode *insert(AVLNode *node, int key, int value);
     int get(AVLNode *node, int key);
     int height(AVLNode *n);
@@ -26,14 +26,16 @@ class AVLTree
     AVLNode *rightRotate(AVLNode *y);
     AVLNode *leftRotate(AVLNode *x);
     void inorderTraversal(AVLNode *node,
-                          std::vector<std::pair<int, int> > &result);
+                          std::vector<std::pair<int, int> > &result, int key1, int key2);
+    void clear(AVLNode *node);
 
    public:
     AVLTree();
     void put(int key, int value);
     int get(int key);
-    // scan operation (returns sorted key-value pairs)
-    std::vector<std::pair<int, int> > scan();
+    std::vector<std::pair<int, int> > scan(int key1, int key2);
+    void clear();
+    size_t getSize();
 };
 
 #endif
