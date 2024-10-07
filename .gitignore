@@ -1,1 +1,6 @@
+*.o
+*.obj
 
+main
+tests
+db/
