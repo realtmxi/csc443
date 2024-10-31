@@ -1,6 +1,10 @@
 #include <cstdio>
+#include <sys/stat.h>
+#include <unistd.h> 
+#include <filesystem> 
 
 #include "../src/avl_tree.h"
+#include "../src/database.h"
 
 void
 assertEqual(int expected, int actual, const char *testName,
@@ -114,9 +118,109 @@ testAVLTree()
     printf("Failed: %d\n", totalTestsFailed);
 }
 
+// Test Open and Close
+void testDatabaseOpenClose(int &totalPassed, int &totalFailed) {
+    printf("\n\nDATABASE OPEN & CLOSE TESTS\n");
+    Database db("test_db", 5);
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    // Test Open
+    db.Open();
+    assertEqual(1, directoryExists("test_db"), "Database directory created", testsPassed, testsFailed);
+    
+    // Test Close without data in memtable
+    db.Close();
+    assertEqual(1, db.Get(0) == -1, "Database closed and no data persists", testsPassed, testsFailed);
+    
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+// Test StoreMemtable functionality
+void testDatabaseStoreMemtable(int &totalPassed, int &totalFailed) {
+    printf("\n\nDATABASE STORE MEMTABLE TESTS\n");
+    Database db("test_db", 2); // Low memtable size for quick flush
+    db.Open();
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    db.Put(10, 1000);
+    db.Put(20, 2000);
+
+    // Fill memtable to trigger store
+    db.Put(30, 3000);
+    assertEqual(3000, db.Get(30), "Data from new Memtable after flush", testsPassed, testsFailed);
+
+    db.Close();
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+// Test Put and Get functionality
+void testDatabasePutGet(int &totalPassed, int &totalFailed) {
+    printf("\n\nDATABASE PUT & GET TESTS\n");
+    Database db("test_db", 5);
+    db.Open();
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    db.Put(1, 100);
+    db.Put(2, 200);
+    db.Put(3, 300);
+    assertEqual(100, db.Get(1), "Database get(1)", testsPassed, testsFailed);
+    assertEqual(200, db.Get(2), "Database get(2)", testsPassed, testsFailed);
+    assertEqual(300, db.Get(3), "Database get(3)", testsPassed, testsFailed);
+
+    db.Close();
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+// Test Scan functionality
+void testDatabaseScan(int &totalPassed, int &totalFailed) {
+    printf("\n\nDATABASE SCAN TESTS\n");
+    Database db("test_db", 3); // Memtable threshold 3
+    db.Open();
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    // Triggers memtable flush to SST
+    db.Put(1, 100);
+    db.Put(2, 200);
+    db.Put(3, 300);
+    db.Put(4, 400); 
+    db.Put(5, 500);
+
+    auto scanResults = db.Scan(2, 5);
+    assertEqual(4, scanResults.size(), "Scan results within range 2 to 5", testsPassed, testsFailed);
+
+    db.Close();
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+// New master test function for Database
+void testDatabase() {
+    int totalTestsPassed = 0;
+    int totalTestsFailed = 0;
+
+    printf("DATABASE TESTS:\n");
+    testDatabaseOpenClose(totalTestsPassed, totalTestsFailed);
+    testDatabaseStoreMemtable(totalTestsPassed, totalTestsFailed);
+    testDatabasePutGet(totalTestsPassed, totalTestsFailed);
+    testDatabaseScan(totalTestsPassed, totalTestsFailed);
+
+    printf("\n\nDATABASE TEST SUMMARY\n");
+    printf("Passed: %d\n", totalTestsPassed);
+    printf("Failed: %d\n", totalTestsFailed);
+}
+
+
 int
 main()
 {
     testAVLTree();
+    testDatabase();
     return 0;
 }
