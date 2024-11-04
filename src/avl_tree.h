@@ -19,16 +19,19 @@ class AVLTree
    private:
     AVLNode *root;
     size_t size;
-    AVLNode *insert(AVLNode *node, int key, int value);
+
     int get(AVLNode *node, int key);
     int height(AVLNode *n);
     int getBalance(AVLNode *n);
     AVLNode *rightRotate(AVLNode *y);
     AVLNode *leftRotate(AVLNode *x);
+    AVLNode *insert(AVLNode *node, int key, int value);
+    AVLNode *deleteNode(AVLNode *root, int key);
     void inorderTraversal(AVLNode *node,
                           std::vector<std::pair<int, int> > &result, int key1, int key2);
     void clear(AVLNode *node);
-
+    AVLNode *minValueNode(AVLNode *node);
+    
    public:
     AVLTree();
     void put(int key, int value);
