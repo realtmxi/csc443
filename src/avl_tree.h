@@ -3,42 +3,44 @@
 
 #include <utility>
 #include <vector>
-struct AVLNode
-{
-    int key;
-    int value;
-    AVLNode *left;
-    AVLNode *right;
-    int height;
-
-    AVLNode(int k, int v);
-};
 
 class AVLTree
 {
-   private:
+  private:
+    struct AVLNode
+    {
+      int key;
+      int value;
+      AVLNode *left;
+      AVLNode *right;
+      int height;
+
+      AVLNode(int k, int v);
+    };
+    
     AVLNode *root;
     size_t size;
 
-    int get(AVLNode *node, int key);
+    // Helper function for AVL Tree implementation.
     int height(AVLNode *n);
     int getBalance(AVLNode *n);
     AVLNode *rightRotate(AVLNode *y);
     AVLNode *leftRotate(AVLNode *x);
+    AVLNode *minValueNode(AVLNode *node);
+    void clear(AVLNode *node);
+    
+  public:
+    AVLTree();
+
     AVLNode *insert(AVLNode *node, int key, int value);
     AVLNode *deleteNode(AVLNode *root, int key);
+    int search (int key);
+
     void inorderTraversal(AVLNode *node,
-                          std::vector<std::pair<int, int> > &result, int key1, int key2);
-    void clear(AVLNode *node);
-    AVLNode *minValueNode(AVLNode *node);
-    
-   public:
-    AVLTree();
-    void put(int key, int value);
-    int get(int key);
-    std::vector<std::pair<int, int> > scan(int key1, int key2);
-    void clear();
+                          std::vector<std::pair<int, int> > &result, 
+                          int key1, int key2);
     size_t getSize();
+    void clear();
 };
 
 #endif
