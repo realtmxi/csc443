@@ -19,7 +19,6 @@ class AVLTree
     };
     
     AVLNode *root;
-    size_t size;
 
     // Helper function for AVL Tree implementation.
     int height(AVLNode *n);
@@ -27,19 +26,21 @@ class AVLTree
     AVLNode *rightRotate(AVLNode *y);
     AVLNode *leftRotate(AVLNode *x);
     AVLNode *minValueNode(AVLNode *node);
+    void inorderTraversal(AVLNode *node,
+                          std::vector<std::pair<int, int> > &result,
+                          int key1, int key2);
     void clear(AVLNode *node);
+    AVLNode *insert(AVLNode *node, int key, int value);
+    AVLNode *deleteNode(AVLNode *root, int key);
     
   public:
     AVLTree();
-
-    AVLNode *insert(AVLNode *node, int key, int value);
-    AVLNode *deleteNode(AVLNode *root, int key);
+    
+    void insert(int key, int value);
+    void remove(int key);
     int search (int key);
+    std::vector<std::pair<int, int> > scan(int key1, int key2);
 
-    void inorderTraversal(AVLNode *node,
-                          std::vector<std::pair<int, int> > &result, 
-                          int key1, int key2);
-    size_t getSize();
     void clear();
 };
 

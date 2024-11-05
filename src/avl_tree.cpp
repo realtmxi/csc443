@@ -8,7 +8,7 @@ AVLTree::AVLNode::AVLNode(int k, int v)
 
 /* AVLTree Constructor. */
 AVLTree::AVLTree()
-    : root(nullptr), size(0) {}
+    : root(nullptr) {}
 
 /* Get the height of a node. */
 int
@@ -89,6 +89,32 @@ AVLTree::minValueNode(AVLNode *node)
     }
 
     return current;
+}
+
+/* Perform in-order traversal of the AVL tree. */
+void
+AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
+{
+    if (node == nullptr)
+        return;
+
+    // Go left if key1 is less than the current key
+    if (key1 < node->key)
+    {
+        inorderTraversal(node->left, result, key1, key2);
+    }
+
+    // Add to result if the key is within the range
+    if (key1 <= node->key && node->key <= key2)
+    {
+        result.push_back({node->key, node->value});
+    }
+
+    // Go right if key2 is greater than the current key
+    if (key2 > node->key)
+    {
+        inorderTraversal(node->right, result, key1, key2);
+    }
 }
 
 /* Recursively clear all nodes in the tree. */
@@ -181,7 +207,6 @@ AVLTree::deleteNode(AVLNode *root, int key)
             }
 
             delete temp;
-            size--;
         }
         else
         {
@@ -227,6 +252,18 @@ AVLTree::deleteNode(AVLNode *root, int key)
     return root;
 }
 
+void
+AVLTree::insert(int key, int value)
+{
+    root = insert(root, key, value);
+}
+
+void
+AVLTree:: remove(int key)
+{
+    root = deleteNode(root, key);
+}
+
 /* Search for a value accociated with the given key. */
 int
 AVLTree::search(int key)
@@ -245,36 +282,12 @@ AVLTree::search(int key)
     return -1;
 }
 
-/* Perform in-order traversal of the AVL tree. */
-void
-AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
+/* Get the key-value pairs within the specified range. */
+std::vector<std::pair<int, int>> AVLTree::scan(int key1, int key2)
 {
-    if (node == nullptr)
-        return;
-
-    // Go left if key1 is less than the current key
-    if (key1 < node->key)
-    {
-        inorderTraversal(node->left, result, key1, key2);
-    }
-
-    // Add to result if the key is within the range
-    if (key1 <= node->key && node->key <= key2)
-    {
-        result.push_back({node->key, node->value});
-    }
-
-    // Go right if key2 is greater than the current key
-    if (key2 > node->key)
-    {
-        inorderTraversal(node->right, result, key1, key2);
-    }
-}
-
-size_t
-AVLTree::getSize()
-{
-    return size;
+    std::vector<std::pair<int, int>> result;
+    inorderTraversal(root, result, key1, key2);
+    return result;
 }
 
 void
@@ -282,5 +295,4 @@ AVLTree::clear()
 {
     clear(root);
     root = nullptr;
-    size = 0;
 }
