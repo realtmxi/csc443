@@ -27,6 +27,8 @@ class SSTable {
     std::vector<std::pair<int, int>> scan(int key1, int key2);
     int get(int key);
 
+    void write(const std::string& filename, 
+               const std::vector<std::pair<int, int>>& data);
 }
 
 #endif

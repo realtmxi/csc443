@@ -113,3 +113,5 @@ SSTable::get(int key)
   close (fd);
   return -1; // Key not found
 }
+
+/* Write key-value pairs to an SST file in binary format. */

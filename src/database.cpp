@@ -111,13 +111,12 @@ Database::Scan(int key1, int key2)
         resultKeys.insert(r.first);
     }
 
-    // go through SST files second
+    // Go through SST files then
     for (const auto& file : sstFiles)
     {
-        auto tree = LoadMemtable(file);
-        auto fileResults = tree.scan(key1, key2);
-        // add to results if not already there
-        for (const auto& r : fileResults)
+        SSTable sst(file);
+        auto sstResults = sst.scan(key1, key2);
+        for (const auto &r : sstResults)
         {
             if (resultKeys.find(r.first) == resultKeys.end())
             {
@@ -130,58 +129,37 @@ Database::Scan(int key1, int key2)
     return results;
 }
 
+/* Transform the memtable into an SST when it reaches capacity. */
 void
 Database::StoreMemtable()
 {
-    // make a unique filename using current time
-    std::time_t t = std::time(nullptr);
-    std::stringstream filename;
-    filename << dbName << "/sst_" << t << ".sst";
+    // Generate a unique filename for the SST file.
+    std::string filename = _generateFileName();
 
-    // opening file
-    std::ofstream outFile(filename.str(), std::ios::binary);
-    if (!outFile.is_open())
-    {
-        printf("Failed to create SST file: %s\n", filename.str().c_str());
-        return;
-    }
-
-    // writing to disk and wiping memtable
+    // Get all kv pairs from the memtable in sorted order.
     auto result = memtable.scan(INT_MIN, INT_MAX);
-    for (auto& r : result)
-    {
-        outFile.write(reinterpret_cast<const char*>(&r.first), sizeof(r.first));
-        outFile.write(reinterpret_cast<const char*>(&r.second), sizeof(r.second));
-    }
 
-    outFile.close();
-    sstFiles.push_back(filename.str());
+    // Use SSTable to write the data into disk.
+    SSTable sst(filename);
+    sst.write(filename, result);
+
+    // Add the SST file to the list of SST files.
+    sstFiles.push_back(filename);
+    
     memtable.clear();
 }
 
-AVLTree
-Database::LoadMemtable(const std::string& filename)
-{
-    AVLTree tree;
+/* A helper function for StoreMemtable. Generate a unique filename for each
+   SST file using the current timestamp. */
+std::string
+Database::_generateFileName()
+{   
+    // Get the current time for filename uniqueness.
+    std::time_t t = std::time(nullptr);
 
-    int fd = open(filename.c_str(), O_RDONLY);
-    if (fd < 0)
-    {
-        printf("Failed to open SST file: %s\n", filename.c_str());
-        return tree;
-    }
+    // Creat a filename with the current timestamp.
+    std::stringstream filename;
+    filename << dbName << "/sst_" << t << ".sst";
 
-    // Read the file into the tree.
-    // TODO: This is just a placeholder for an easy get/scan.
-    // We need to implement a binary search over the ssts for get and return the latest value for a key.
-    // The assignment says to use pages, but we have not used pages so far. Perhaps it is just to load a chunk of the file at a time in sorted order?
-    // For scan, this might be good enough for now.
-    int key, value;
-    while (read(fd, &key, sizeof(key)) > 0 && read(fd, &value, sizeof(value)) > 0)
-    {
-        tree.put(key, value);
-    }
-
-    close(fd);
-    return tree;
+    return filename.str();
 }
