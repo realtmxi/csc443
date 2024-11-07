@@ -41,7 +41,7 @@ SSTable::scan(int key1, int key2)
 
   // Binary search to find the start of the range.
   size_t left = 0;
-  size_t right = num_entries;
+  size_t right = num_entries - 1;
   size_t start_pos = num_entries;
   
   while (left <= right)
@@ -56,26 +56,25 @@ SSTable::scan(int key1, int key2)
     }
     else
     {
-      right = mid;
+      right = mid - 1;
+      start_pos = mid;
     }
-
-    start_pos = left;
-
-    // Sequentially read from start position
-    for (size_t i = start_pos; i < num_entries; i++)
-    {
-      off_t ofs = i * sizeof(int) * 2;
-      int key = readKey(fd, ofs);
-      if (key > key2)
-        break;
-      int value = readValue(fd, ofs + sizeof(int));
-      result.push_back({key, value});
-    }
-
-    close(fd);
-
-    return result;
   }
+
+  // Sequentially read from start position
+  for (size_t i = start_pos; i < num_entries; i++)
+  {
+    off_t ofs = i * sizeof(int) * 2;
+    int key = readKey(fd, ofs);
+    if (key > key2)
+      break;
+    int value = readValue(fd, ofs + sizeof(int));
+    result.push_back({key, value});
+  }
+
+  close(fd);
+
+  return result;
 }
 
 /* Perform a binary search for an exact key match in SSTable. */
