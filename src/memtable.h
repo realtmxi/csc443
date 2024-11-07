@@ -17,13 +17,10 @@ class Memtable {
     void put(int key, int value);
     int get(int key);
     std::vector<std::pair<int, int>> scan(int key1, int key2);
-
+    
     size_t getSize() const;
     bool isFull() const;
     void clear();
-
-    bool flushToSST(const std::string &sst_path);
-
 }
 
 #endif

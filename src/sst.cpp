@@ -77,3 +77,40 @@ SSTable::scan(int key1, int key2)
     return result;
   }
 }
+
+/* Perform a binary search for an exact key match in SSTable. */
+int
+SSTable::get(int key)
+{
+  int fd = open(file_path.c_str(), O_RDONLY);
+  if (fd < 0)
+    return -1;
+
+  size_t left = 0;
+  size_t right = num_entries - 1;
+
+  while (left <= right)
+  {
+    size_t mid = left + (right - left) / 2;
+    off_t ofs = mid * sizeof(int) * 2;
+    int mid_key = readKey(fd, ofs);
+
+    if (mid_key == key)
+    {
+      int value = readValue(fd, ofs + sizeof(int));
+      close(fd);
+      return value;
+    }
+    else if (mid_key < key)
+    {
+      left = mid + 1;
+    }
+    else
+    {
+      right = mid - 1;
+    }
+  }
+
+  close (fd);
+  return -1; // Key not found
+}
