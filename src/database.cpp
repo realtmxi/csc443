@@ -75,12 +75,11 @@ Database::Get(int key)
     }
 
     // go through SST files
-    // TODO: This is just a placeholder for an easy get.
-    // we need to do binary search over the sst files in pages instead of just loading it all.
     for (const auto& file : sstFiles)
     {
-        auto tree = LoadMemtable(file);
-        result = tree.get(key);
+        SSTable sst(file);
+        result = sst.get(key);
+
         if (result != -1)
         {
             return result;
