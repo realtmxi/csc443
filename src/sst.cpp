@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <fcntl.h>
+#include <fstream>
 
 SSTable::SSTable(const std::string &path) : file_path(path) {
   struct stat buf;
@@ -18,7 +19,10 @@ int
 SSTable::readKey(int fd, off_t offset)
 {
   int key;
-  pread(fd, &key, sizeof(int), offset);
+  if (pread(fd, &key, sizeof(int), offset) != sizeof(int))
+  {
+    throw std::runtime_error("Failed to read key from SSTable");
+  }
   return key;
 }
 
@@ -26,7 +30,10 @@ int
 SSTable::readValue(int fd, off_t offset)
 {
   int value;
-  pread(fd, &value, sizeof(int), offset);
+  if (pread(fd, &value, sizeof(int), offset) != sizeof(int))
+  {
+    throw std::runtime_error("Failed to read value from SSTable");
+  }
   return value;
 }
 
@@ -115,3 +122,19 @@ SSTable::get(int key)
 }
 
 /* Write key-value pairs to an SST file in binary format. */
+void
+SSTable::write(const std::string& filename, const std::vector<std::pair<int, int>>& data)
+{
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile.is_open()) {
+        throw std::runtime_error("Failed to create SST file: " + filename);
+    }
+
+    // Write each key-value pair to the file
+    for (const auto& kv : data) {
+        outFile.write(reinterpret_cast<const char*>(&kv.first), sizeof(kv.first));
+        outFile.write(reinterpret_cast<const char*>(&kv.second), sizeof(kv.second));
+    }
+
+    outFile.close();
+}

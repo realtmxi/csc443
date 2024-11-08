@@ -21,6 +21,6 @@ class Memtable {
     size_t getSize() const;
     bool isFull() const;
     void clear();
-}
+};
 
 #endif

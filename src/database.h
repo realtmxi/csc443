@@ -3,7 +3,7 @@
 
 #include <string>
 #include "memtable.h"
-#include "sstable.h"
+#include "sst.h"
 
 class Database
 {
@@ -14,7 +14,7 @@ class Database
     bool isOpen;
     std::vector<std::string> sstFiles;
     void StoreMemtable();
-    std::string Database::_generateFileName();
+    std::string _generateFileName();
 
    public:
     Database(const std::string& name, size_t memtableSize = 128);

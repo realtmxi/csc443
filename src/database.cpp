@@ -8,9 +8,10 @@
 #include <fstream>     // for reading and writing files
 #include <set>         // for using set to track found keys
 #include <sstream>     // for using stringstream to create filenames
+#include <climits>
 
 Database::Database(const std::string& name, size_t memtableSize)
-    : dbName(name), memtableSize(memtableSize), isOpen(false) {}
+    : dbName(name), memtable(memtableSize), memtableSize(memtableSize), isOpen(false) {}
 
 void
 Database::Open()

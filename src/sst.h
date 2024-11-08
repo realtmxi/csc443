@@ -29,6 +29,6 @@ class SSTable {
 
     void write(const std::string& filename, 
                const std::vector<std::pair<int, int>>& data);
-}
+};
 
 #endif
