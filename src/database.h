@@ -2,19 +2,19 @@
 #define DATABASE_H
 
 #include <string>
-
-#include "avl_tree.h"
+#include "memtable.h"
+#include "sst.h"
 
 class Database
 {
    private:
     std::string dbName;
-    AVLTree memtable;
+    Memtable memtable;
     size_t memtableSize;
     bool isOpen;
     std::vector<std::string> sstFiles;
     void StoreMemtable();
-    AVLTree LoadMemtable(const std::string& filename);
+    std::string _generateFileName();
 
    public:
     Database(const std::string& name, size_t memtableSize = 128);

@@ -1,14 +1,14 @@
 #include "avl_tree.h"
-
+#include <iostream>
 #include <algorithm>
 
 /* AVL Node Constructor. */
-AVLNode::AVLNode(int k, int v)
+AVLTree::AVLNode::AVLNode(int k, int v)
     : key(k), value(v), left(nullptr), right(nullptr), height(1) {}
 
 /* AVLTree Constructor. */
 AVLTree::AVLTree()
-    : root(nullptr), size(0) {}
+    : root(nullptr) {}
 
 /* Get the height of a node. */
 int
@@ -33,7 +33,7 @@ AVLTree::getBalance(AVLNode *n)
  *       / \                    / \
  *      T1  T2                T2  T3
  */
-AVLNode *
+AVLTree::AVLNode *
 AVLTree::rightRotate(AVLNode *y)
 {
     AVLNode *x = y->left;
@@ -60,7 +60,7 @@ AVLTree::rightRotate(AVLNode *y)
  *           / \            / \
  *          T2  T3         T1  T2
  */
-AVLNode *
+AVLTree::AVLNode *
 AVLTree::leftRotate(AVLNode *x)
 {
     AVLNode *y = x->right;
@@ -78,9 +78,59 @@ AVLTree::leftRotate(AVLNode *x)
     return y;
 }
 
+/* Return the node with minimum key value in a subtree. */
+AVLTree::AVLNode *
+AVLTree::minValueNode(AVLNode *node)
+{
+    AVLNode *current = node;
+    while (current->left != nullptr)
+    {
+        current = current->left;
+    }
+
+    return current;
+}
+
+/* Perform in-order traversal of the AVL tree. */
+void
+AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
+{
+    if (node == nullptr)
+        return;
+
+    // Go left if key1 is less than the current key
+    if (key1 < node->key)
+    {
+        inorderTraversal(node->left, result, key1, key2);
+    }
+
+    // Add to result if the key is within the range
+    if (key1 <= node->key && node->key <= key2)
+    {
+        result.push_back({node->key, node->value});
+    }
+
+    // Go right if key2 is greater than the current key
+    if (key2 > node->key)
+    {
+        inorderTraversal(node->right, result, key1, key2);
+    }
+}
+
+/* Recursively clear all nodes in the tree. */
+void
+AVLTree::clear(AVLNode *node)
+{
+    if (node == nullptr)
+        return;
+
+    clear(node->left);
+    clear(node->right);
+    delete node;
+}
 
 /* Insert a new key-value pair node into the AVL tree. */
-AVLNode *
+AVLTree::AVLNode *
 AVLTree::insert(AVLNode *node, int key, int value)
 {
     // Perform a normal BST Insertion.
@@ -125,24 +175,11 @@ AVLTree::insert(AVLNode *node, int key, int value)
     return node;
 }
 
-/* Return the node with minimum key value in a subtree. */
-AVLNode *
-AVLTree::minValueNode(AVLNode *node)
-{
-    AVLNode *current = node;
-    while (current->left != nullptr)
-    {
-        current = current->left;
-    }
-
-    return current;
-}
-
 /**
  * Delete a AVL node with given key from subtree with given root. It returns the
  * root of the modified subtree. 
  */
-AVLNode *
+AVLTree::AVLNode *
 AVLTree::deleteNode(AVLNode *root, int key)
 {
     // Perform a BST DELETION
@@ -170,7 +207,6 @@ AVLTree::deleteNode(AVLNode *root, int key)
             }
 
             delete temp;
-            size--;
         }
         else
         {
@@ -216,75 +252,38 @@ AVLTree::deleteNode(AVLNode *root, int key)
     return root;
 }
 
-
-/* Perform in-order traversal of the AVL tree. */
 void
-AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
-{
-    if (node == nullptr)
-        return;
-
-    // Go left if key1 is less than the current key
-    if (key1 < node->key)
-    {
-        inorderTraversal(node->left, result, key1, key2);
-    }
-
-    // Add to result if the key is within the range
-    if (key1 <= node->key && node->key <= key2)
-    {
-        result.push_back({node->key, node->value});
-    }
-
-    // Go right if key2 is greater than the current key
-    if (key2 > node->key)
-    {
-        inorderTraversal(node->right, result, key1, key2);
-    }
-}
-
-
-/* Recursively clear all nodes in the tree. */
-void
-AVLTree::clear(AVLNode *node)
-{
-    if (node == nullptr)
-        return;
-
-    clear(node->left);
-    clear(node->right);
-    delete node;
-}
-
-int
-AVLTree::get(AVLNode *node, int key)
-{
-    if (!node)
-        return -1;
-
-    if (key < node->key)
-        return get(node->left, key);
-    else if (key > node->key)
-        return get(node->right, key);
-    else
-        return node->value;
-}
-
-void
-AVLTree::put(int key, int value)
+AVLTree::insert(int key, int value)
 {
     root = insert(root, key, value);
-    size++;
 }
 
-int
-AVLTree::get(int key)
+void
+AVLTree:: remove(int key)
 {
-    return get(root, key);
+    root = deleteNode(root, key);
 }
 
-std::vector<std::pair<int, int>>
-AVLTree::scan(int key1, int key2)
+/* Search for a value accociated with the given key. */
+int
+AVLTree::search(int key)
+{
+    AVLNode *curr = root;
+    while (curr)
+    {
+        if (key < curr->key)
+            curr = curr->left;
+        else if (key > curr->key)
+            curr = curr->right;
+        else
+            return curr->value;
+    }
+
+    return -1;
+}
+
+/* Get the key-value pairs within the specified range. */
+std::vector<std::pair<int, int>> AVLTree::scan(int key1, int key2)
 {
     std::vector<std::pair<int, int>> result;
     inorderTraversal(root, result, key1, key2);
@@ -296,11 +295,4 @@ AVLTree::clear()
 {
     clear(root);
     root = nullptr;
-    size = 0;
-}
-
-size_t
-AVLTree::getSize()
-{
-    return size;
 }

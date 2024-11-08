@@ -6,4 +6,4 @@ AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AlwaysBreakAfterDefinitionReturnType: All
 BreakBeforeBraces: Allman
-ColumnLimit: 0
+ColumnLimit: 80
