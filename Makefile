@@ -1,14 +1,18 @@
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2
+# Compiler
+CC = g++
 
-CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp test/tests.cpp
-HFILES = src/avl_tree.h src/database.h
+# Compiler flags
+CFLAGS = -std=c++17 -Wall -Wextra -O2
 
-main: src/main.cpp src/avl_tree.cpp src/database.cpp
-	$(CXX) $(CXXFLAGS) -o main src/main.cpp src/avl_tree.cpp src/database.cpp
+# Source and header files
+CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp test/tests.cpp
+HFILES = src/avl_tree.h src/database.h src//memtable.h src/sst.h
 
-tests: test/tests.cpp src/avl_tree.cpp src/database.cpp
-	$(CXX) $(CXXFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp
+main: src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+	$(CC) $(CFLAGS) -o main src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+
+tests: test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+	$(CC) $(CFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
 
 clean:
 	rm -f main tests
