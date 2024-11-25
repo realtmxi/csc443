@@ -57,6 +57,19 @@ class BufferPoolManager {
   /** The frame headers of the frames that this buffer pool manages. */
   std::vector<std::shared_ptr<FrameHeader>> frames_;
 
+  /** The latch protecting the buffer pool's inner data structure. */
+  std::shared_ptr<std::mutex> latch_;
+
   /** The page table that keeps track of the mapping between pages and buffer pool frames. */
+  std::unordered_map<page_id_t, frame_id_t> page_table_;
+
+  /** A list of free frames that do not hold any page's data. */
+  std::list<frame_id_t> free_frames_;
+
+  /** The clock replacer to find pages for eviction. */
+  std::shared_ptr<ClockReplacer> replacer_;
+
+  /** A pointer to the disk scheduler. */
+  std::unique_ptr<DiskScheduler> disk_scheduler_;
 
 };
