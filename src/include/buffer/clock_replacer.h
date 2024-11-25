@@ -4,6 +4,11 @@
 #include "replacer.h"
 #include "common/config.h"
 
+struct FrameInfo {
+	bool ref; // Reference bit
+	bool pinned; // Pinned bit
+}
+
 /**
  * ClockReplacer implements the clock replacement policy, which approximates the
  * LRU(Least Recently Used) policy.
@@ -33,6 +38,6 @@ class ClockReplacer: public Replacer {
 
 		private:
 			frame_id_t clock_hand_ = 0;
-			std::vector<std::tuple<bool, bool>> frames_;
+			std::vector<FrameInfo> frames_;
 			std::shared_mutex latch_;
 };
