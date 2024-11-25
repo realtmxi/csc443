@@ -1,11 +1,17 @@
 #include <list>
 #include <vector>
-#include "buffer/replacer.h"
-#include "utils/config.h"
+#include <shared_mutex>
+#include "replacer.h"
+#include "common/config.h"
 
 /**
  * ClockReplacer implements the clock replacement policy, which approximates the
  * LRU(Least Recently Used) policy.
+ * Each page has a reference bit, when a page is accessed, set its bit to 1.
+ * Organize all pages in a circular buffer with a "clock hand" that sweeps over
+ * pages in order:
+ * As the hand visits each page, check if its bit is set to 1.
+ * If yes, set to zero. If no, then evict the page.
  */
 class ClockReplacer: public Replacer {
 	public:
@@ -26,5 +32,7 @@ class ClockReplacer: public Replacer {
 		auto Size() -> size_t override;
 
 		private:
-			// TODO
+			frame_id_t clock_hand_ = 0;
+			std::vector<std::tuple<bool, bool>> frames_;
+			std::shared_mutex latch_;
 };
