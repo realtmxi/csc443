@@ -21,8 +21,10 @@ class LSMTree {
  public:
   explicit LSMTree();
 
+  std::string GetFilename() const;
+
   // merge 2 btree files of the same level into a new file +1 level
-  void MergeBtrees(const std::string &btree1_filename, const std::string &btree2_filename, const std::string &output_filename);
+  void MergeBtrees(const std::string &btree1_filename, const std::string &btree2_filename);
 
   // merge 2 pages into a new page and a potential overflow page.
   // Page 1 is considered "more recent" than Page 2, and so the keys in Page 1 will be prioritized.
@@ -32,7 +34,7 @@ class LSMTree {
 
  private:
   int level_; // The level of the current LSM Tree
-  std::string filename_; // The filename in the form of "btree_{level}_{time created}.bin". This way, we can extract the level from the filename instead of inside the file
+  std::string filename_; // The filename in the form of "sst_{level}_{time created}.sst". This way, we can extract the level from the filename instead of inside the file
 
   // helper to determine the new level and filename of the merged BTree
   void DetermineNewLevelAndFilename(const std::string &btree1_filename, const std::string &btree2_filename);

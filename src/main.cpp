@@ -25,6 +25,7 @@ main()
         printf("key: %d, value: %d\n", r.first, r.second);
     }
 
-    // the result are a mix of the two values, the hundreds being the in-memory values
-    // and the tens being the first values put in, which are now in the sst files
+    // the result are a mix of the two values, the hundreds being the in-memory
+    // values and the tens being the first values put in, which are now in the
+    // sst files
 }

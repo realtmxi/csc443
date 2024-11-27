@@ -1,14 +1,16 @@
 #include "avl_tree.h"
-#include <iostream>
+
 #include <algorithm>
+#include <iostream>
 
 /* AVL Node Constructor. */
 AVLTree::AVLNode::AVLNode(int k, int v)
-    : key(k), value(v), left(nullptr), right(nullptr), height(1) {}
+    : key(k), value(v), left(nullptr), right(nullptr), height(1)
+{
+}
 
 /* AVLTree Constructor. */
-AVLTree::AVLTree()
-    : root(nullptr) {}
+AVLTree::AVLTree() : root(nullptr) {}
 
 /* Get the height of a node. */
 int
@@ -24,8 +26,8 @@ AVLTree::getBalance(AVLNode *n)
     return n ? height(n->left) - height(n->right) : 0;
 }
 
-/** 
- * Perform a right rotation on a subtree. 
+/**
+ * Perform a right rotation on a subtree.
  * Rotation performed as follows:
  *          y                  x
  *         / \                / \
@@ -93,10 +95,11 @@ AVLTree::minValueNode(AVLNode *node)
 
 /* Perform in-order traversal of the AVL tree. */
 void
-AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &result, int key1, int key2)
+AVLTree::inorderTraversal(AVLNode *node,
+                          std::vector<std::pair<int, int>> &result, int key1,
+                          int key2)
 {
-    if (node == nullptr)
-        return;
+    if (node == nullptr) return;
 
     // Go left if key1 is less than the current key
     if (key1 < node->key)
@@ -121,8 +124,7 @@ AVLTree::inorderTraversal(AVLNode *node, std::vector<std::pair<int, int>> &resul
 void
 AVLTree::clear(AVLNode *node)
 {
-    if (node == nullptr)
-        return;
+    if (node == nullptr) return;
 
     clear(node->left);
     clear(node->right);
@@ -134,8 +136,7 @@ AVLTree::AVLNode *
 AVLTree::insert(AVLNode *node, int key, int value)
 {
     // Perform a normal BST Insertion.
-    if (!node)
-        return new AVLNode(key, value);
+    if (!node) return new AVLNode(key, value);
 
     if (key < node->key)
         node->left = insert(node->left, key, value);
@@ -151,12 +152,10 @@ AVLTree::insert(AVLNode *node, int key, int value)
     int balance = getBalance(node);
 
     // Left Left Case
-    if (balance > 1 && key < node->left->key)
-        return rightRotate(node);
+    if (balance > 1 && key < node->left->key) return rightRotate(node);
 
     // Right Right Case
-    if (balance < -1 && key > node->right->key)
-        return leftRotate(node);
+    if (balance < -1 && key > node->right->key) return leftRotate(node);
 
     // Left Right Case
     if (balance > 1 && key > node->left->key)
@@ -177,7 +176,7 @@ AVLTree::insert(AVLNode *node, int key, int value)
 
 /**
  * Delete a AVL node with given key from subtree with given root. It returns the
- * root of the modified subtree. 
+ * root of the modified subtree.
  */
 AVLTree::AVLNode *
 AVLTree::deleteNode(AVLNode *root, int key)
@@ -187,13 +186,13 @@ AVLTree::deleteNode(AVLNode *root, int key)
         return root;
     else if (key < root->key)
         root->left = deleteNode(root->left, key);
-    else 
+    else
     {
         // Node with only one child or no child
         if (!root->left || !root->right)
         {
             AVLNode *temp = root->left ? root->left : root->right;
-            
+
             if (!temp)
             {
                 // No child
@@ -221,8 +220,7 @@ AVLTree::deleteNode(AVLNode *root, int key)
     }
 
     // If the tree had only one node
-    if (root == nullptr)
-        return root;
+    if (root == nullptr) return root;
 
     // Update height
     root->height = 1 + std::max(height(root->left), height(root->right));
@@ -231,17 +229,14 @@ AVLTree::deleteNode(AVLNode *root, int key)
     int balance = getBalance(root);
 
     // Left Left Case
-    if (balance > 1 && getBalance(root->left) >= 0)
-        return rightRotate(root);
-    
+    if (balance > 1 && getBalance(root->left) >= 0) return rightRotate(root);
+
     // Left Right Case
-    if (balance > 1 && getBalance(root->left) < 0)
-        return rightRotate(root);
-    
+    if (balance > 1 && getBalance(root->left) < 0) return rightRotate(root);
+
     // Right Right Case
-    if (balance < -1 && getBalance(root->right) <= 0)
-        return leftRotate(root);
-    
+    if (balance < -1 && getBalance(root->right) <= 0) return leftRotate(root);
+
     // Right Left Case
     if (balance < -1 && getBalance(root->right) > 0)
     {
@@ -259,7 +254,7 @@ AVLTree::insert(int key, int value)
 }
 
 void
-AVLTree:: remove(int key)
+AVLTree::remove(int key)
 {
     root = deleteNode(root, key);
 }
@@ -283,7 +278,8 @@ AVLTree::search(int key)
 }
 
 /* Get the key-value pairs within the specified range. */
-std::vector<std::pair<int, int>> AVLTree::scan(int key1, int key2)
+std::vector<std::pair<int, int>>
+AVLTree::scan(int key1, int key2)
 {
     std::vector<std::pair<int, int>> result;
     inorderTraversal(root, result, key1, key2);
