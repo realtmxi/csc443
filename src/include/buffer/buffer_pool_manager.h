@@ -8,9 +8,11 @@
 #include <list>
 #include <unordered_map>
 #include <shared_mutex>
+
 #include "common/config.h"
 #include "buffer/clock_replacer.h"
 #include "third_party/murmur3/MurmurHash3.h"
+#include "storage/disk/disk_manager.h"
 
 class BufferPoolManager;
 
@@ -32,33 +34,13 @@ class FrameHeader {
   /* The dirty flag. */
   bool is_dirty_;
 
+  /* The actual data of the page. */
   std::vector<char> data_;
   
-  /* Unique identifier for the pag. */ 
-  page_id_t page_id_ = INVALID_PAGE_ID;
+  /* Page ID corresponding to the frame. */
+  page_id_t page_id_;
 
 };
-
-struct PageID {
-  std::string file_name;
-  uint64_t offset;
-
-  bool operator==(const PageID &other) const {
-    return file_name == other.file_name && offset == other.offset;
-  }
-};
-
-namespace std {
-template <>
-struct hash<PageID> {
-  auto operator()(const PageID &page_id) const -> size_t {
-    uint64_t hash[2];
-    std::string combined = page_id.file_name + std::to_string(page_id.offset);
-    murmur3::MurmurHash3_x64_128(combined.data(), static_cast<int>(combined.size()), 0, &hash);
-    return static_cast<size_t>(hash[0]); // Use the lower 64 bits as the hash value
-  }
-};
-}
 
 /**
  * The buffer pool is responsible for moving physical pages of data back and 
@@ -78,7 +60,8 @@ class BufferPoolManager {
   auto FlushPage(page_id_t page_id) -> bool;
   void FlushAllPages();
   auto GetPinCount(page_id_t page_id) -> std::optional<size_t>;
-
+  auto SetPoolSize(size_t new_size) -> bool;
+  static auto HashKey(const void *key_data, int len, uint32_t seed = 0) -> uint32_t;
 
  private:
   /** The number of frames in the buffer bool. */
@@ -101,6 +84,12 @@ class BufferPoolManager {
 
   /** The clock replacer to find pages for eviction. */
   std::shared_ptr<ClockReplacer> replacer_;
+
+  /** The disk manager to read and write pages to disk. */
+  std::shared_ptr<DiskManager> disk_manager_;
+
+  /** Helper function to allocate a frame. */
+  auto AllocateFrame(frame_id_t *frame_id) -> bool;
 
 };
 
