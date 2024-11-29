@@ -5,8 +5,8 @@ CC = g++
 CFLAGS = -std=c++17 -Wall -Wextra -O2
 
 # Source and header files
-CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp test/tests.cpp
-HFILES = src/avl_tree.h src/database.h src//memtable.h src/sst.h
+CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp test/tests.cpp src/lsm_tree.cpp
+HFILES = src/avl_tree.h src/database.h src//memtable.h src/sst.h src/lsm_tree.h
 
 main: src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
 	$(CC) $(CFLAGS) -o main src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
