@@ -4,7 +4,7 @@
 // I acknowledge that I use CMU 15-445 BusTub as a reference.
 //===----------------------------------------------------------------------===//
 
-#include "utils/config.h"
+#include "common/config.h"
 
 /**
  * Replacer is an abstract class that tracks the replacement policy of a buffer.

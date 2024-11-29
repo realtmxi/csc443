@@ -1,13 +1,13 @@
 #include <list>
 #include <vector>
 #include <shared_mutex>
-#include "replacer.h"
+#include "buffer/replacer.h"
 #include "common/config.h"
 
 struct FrameInfo {
 	bool ref; // Reference bit
 	bool pinned; // Pinned bit
-}
+};
 
 /**
  * ClockReplacer implements the clock replacement policy, which approximates the

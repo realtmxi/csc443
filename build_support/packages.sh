@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## =================================================================
-## BUSTUB PACKAGE INSTALLATION
+## CSC443 PACKAGE INSTALLATION
 ##
 ## This script will install all the packages that are needed to
 ## build and run the DBMS.
@@ -60,7 +60,7 @@ give_up() {
   echo "Be sure to include the contents of this message."
   echo "Platform: $(uname -a)"
   echo
-  echo "https://github.com/cmu-db/bustub/issues"
+  echo "https://github.com/realtmxi/csc443/issues"
   echo
   exit 1
 }

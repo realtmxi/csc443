@@ -1,54 +1,31 @@
-#include <queue>
-#include <string>
+#pragma once
 
-#include "storage/page/b_tree_page.h"
-
-#define B_TREE_INTERNAL_PAGE_TYPE BTreeInternalPage<KeyType, ValueType, KeyComparator>
-#define INTERNAL_PAGE_HEADER_SIZE 12
-#define INTERNAL_PAGE_SLOT_CNT \
-  ((PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE) / ((int)(sizeof(KeyType) + sizeof(ValueType))))
+#include <vector>
+#include <utility>
+#include "b_tree_page.h"
 
 /**
- * An internal page (i.e., inner node) stores m ordered keys and m+1 child
- * pointers (i.e. page_ids) to other B Tree Pages.
+ * Internal page for B-Tree.
+ * Stores keys and child page pointers.
  */
-INDEX_TEMPLATE_ARGUMENTS
-class BTreeInternalPage: public BTreePage {
+template <typename KeyType, typename PageIdType>
+class BTreeInternalPage : public BTreePage {
  public:
   BTreeInternalPage() = delete;
-  BTreeInternalPage(const BTreeInternalPage &other) = delete;
+  ~BTreeInternalPage() = default;
 
-  void Init(int max_size = INTERNAL_PAGE_SLOT_CNT);
+  void Init(int max_size);
 
   auto KeyAt(int index) const -> KeyType;
+  void SetKeyAt(int index, const KeyType& key);
 
-  void SetKeyAt(int index, const KeyType &key);
+  auto ValueAt(int index) const -> PageIdType;
+  void SetValueAt(int index, const PageIdType& value);
 
-  auto ValueIndex(const ValueType &value) const -> int;
+  auto Insert(const KeyType& key, const PageIdType& value) -> bool;
+  auto Remove(const KeyType& key) -> bool;
 
-  auto ValueAt(int index) const -> ValueType;
-
-  auto ToString() const -> std::string {
-    std::string kstr = "(";
-    bool first = true;
-
-    // First key of internal page is always invalid
-    for (int i = 1; i < GetSize(); i++) {
-      KeyType key = KeyAt(i);
-      if (first) {
-        first = false;
-      } else {
-        kstr.append(",");
-      }
-
-      kstr.append(std::to_string(key.ToString()));
-    }
-    kstr.append(")");
-
-    return kstr;
-  }
-  
  private:
-  KeyType key_array_[INTERNAL_PAGE_SLOT_CNT];
-  ValueType page_id_array_[INTERNAL_PAGE_SLOT_CNT];
+  std::vector<KeyType> keys_;
+  std::vector<PageIdType> child_page_ids_;
 };

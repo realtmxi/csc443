@@ -1,8 +1,16 @@
+#ifndef BUFFER_POOL_MANAGER_H
+#define BUFFER_POOL_MANAGER_H
+
 #include <atomic>
 #include <vector>
 #include <memory>
 #include <optional>
-#include <include/common/config.h>
+#include <list>
+#include <unordered_map>
+#include <shared_mutex>
+#include "common/config.h"
+#include "buffer/clock_replacer.h"
+#include "third_party/murmur3/MurmurHash3.h"
 
 class BufferPoolManager;
 
@@ -25,8 +33,32 @@ class FrameHeader {
   bool is_dirty_;
 
   std::vector<char> data_;
+  
+  /* Unique identifier for the pag. */ 
+  page_id_t page_id_ = INVALID_PAGE_ID;
 
 };
+
+struct PageID {
+  std::string file_name;
+  uint64_t offset;
+
+  bool operator==(const PageID &other) const {
+    return file_name == other.file_name && offset == other.offset;
+  }
+};
+
+namespace std {
+template <>
+struct hash<PageID> {
+  auto operator()(const PageID &page_id) const -> size_t {
+    uint64_t hash[2];
+    std::string combined = page_id.file_name + std::to_string(page_id.offset);
+    murmur3::MurmurHash3_x64_128(combined.data(), static_cast<int>(combined.size()), 0, &hash);
+    return static_cast<size_t>(hash[0]); // Use the lower 64 bits as the hash value
+  }
+};
+}
 
 /**
  * The buffer pool is responsible for moving physical pages of data back and 
@@ -40,6 +72,7 @@ class BufferPoolManager {
   ~BufferPoolManager();
 
   auto Size() const -> size_t;
+  auto FetchPage(page_id_t page_id) -> FrameHeader*; 
   auto NewPage() -> page_id_t;
   auto DeletePage(page_id_t page_id) -> bool;
   auto FlushPage(page_id_t page_id) -> bool;
@@ -69,7 +102,6 @@ class BufferPoolManager {
   /** The clock replacer to find pages for eviction. */
   std::shared_ptr<ClockReplacer> replacer_;
 
-  /** A pointer to the disk scheduler. */
-  std::unique_ptr<DiskScheduler> disk_scheduler_;
-
 };
+
+#endif // BUFFER_POOL_MANAGER_H
