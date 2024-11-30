@@ -5,13 +5,34 @@ CC = g++
 CFLAGS = -std=c++17 -Wall -Wextra -O2
 
 # Source and header files
-CFILES = src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp test/tests.cpp
-HFILES = src/avl_tree.h src/database.h src//memtable.h src/sst.h
+CFILES = src/main.cpp \
+         src/avl_tree.cpp \
+         src/database.cpp \
+         src/memtable.cpp \
+		 src/b_tree/b_tree_internal_page.cpp \
+         src/b_tree/b_tree_leaf_page.cpp \
+         src/b_tree/b_tree.cpp \
+         src/b_tree/b_tree_page.cpp \
+		 src/b_tree/b_tree_manager.cpp \
+         src/sst.cpp \
+        #  test/tests.cpp
 
-main: src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
-	$(CC) $(CFLAGS) -o main src/main.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+HFILES = src/avl_tree.h \
+         src/database.h \
+         src/memtable.h \
+		 src/b_tree/b_tree_internal_page.h \
+         src/b_tree/b_tree_leaf_page.h \
+         src/b_tree/b_tree.h \
+         src/b_tree/b_tree_page.h \
+		 src/b_tree/b_tree_manager.h \
+         src/sst.h \
 
-tests: test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+
+
+main: $(CFILES)
+	$(CC) $(CFLAGS) -o main $(CFILES)
+
+tests: $(CFILES)
 	$(CC) $(CFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
 
 clean:

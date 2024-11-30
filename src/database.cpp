@@ -3,15 +3,23 @@
 #include <fcntl.h>   // for open
 #include <unistd.h>  // for pread
 
+#include <climits>
 #include <ctime>       // for using time to create unique filenames
 #include <filesystem>  // for using filesystem to check if directory exists
 #include <fstream>     // for reading and writing files
 #include <set>         // for using set to track found keys
 #include <sstream>     // for using stringstream to create filenames
-#include <climits>
+
+#include "b_tree/b_tree.h"
+#include "b_tree/b_tree_manager.h"
 
 Database::Database(const std::string& name, size_t memtableSize)
-    : dbName(name), memtable(memtableSize), memtableSize(memtableSize), isOpen(false) {}
+    : dbName(name),
+      memtable(memtableSize),
+      memtableSize(memtableSize),
+      isOpen(false)
+{
+}
 
 void
 Database::Open()
@@ -23,7 +31,8 @@ Database::Open()
     }
     else
     {
-        printf("Database already exists: %s\nLoading files...\n", dbName.c_str());
+        printf("Database already exists: %s\nLoading files...\n",
+               dbName.c_str());
         for (const auto& entry : std::filesystem::directory_iterator(dbName))
         {
             sstFiles.push_back(entry.path().string());
@@ -69,6 +78,7 @@ Database::Get(int key)
         return -1;
     }
 
+    // check memtable first
     auto result = memtable.get(key);
     if (result != -1)
     {
@@ -78,9 +88,8 @@ Database::Get(int key)
     // go through SST files
     for (const auto& file : sstFiles)
     {
-        SSTable sst(file);
-        result = sst.get(key);
-
+        BTreeManager btm(file);
+        result = btm.Get(key);
         if (result != -1)
         {
             return result;
@@ -103,7 +112,8 @@ Database::Scan(int key1, int key2)
 
     // scan memory table first
     auto memtableResults = memtable.scan(key1, key2);
-    results.insert(results.end(), memtableResults.begin(), memtableResults.end());
+    results.insert(results.end(), memtableResults.begin(),
+                   memtableResults.end());
 
     // use set to track found keys
     std::set<int> resultKeys;
@@ -115,14 +125,14 @@ Database::Scan(int key1, int key2)
     // Go through SST files then
     for (const auto& file : sstFiles)
     {
-        SSTable sst(file);
-        auto sstResults = sst.scan(key1, key2);
-        for (const auto &r : sstResults)
+        BTreeManager btm(file);
+        auto sst_results = btm.Scan(key1, key2);
+        // add to results if not already found
+        for (const auto& r : sst_results)
         {
             if (resultKeys.find(r.first) == resultKeys.end())
             {
                 results.push_back(r);
-                resultKeys.insert(r.first);
             }
         }
     }
@@ -140,13 +150,13 @@ Database::StoreMemtable()
     // Get all kv pairs from the memtable in sorted order.
     auto result = memtable.scan(INT_MIN, INT_MAX);
 
-    // Use SSTable to write the data into disk.
-    SSTable sst(filename);
-    sst.write(filename, result);
+    // Use BTree to store the data
+    BTree btree(result);
+    btree.SaveBTreeToDisk(filename);
 
     // Add the SST file to the list of SST files.
     sstFiles.push_back(filename);
-    
+
     memtable.clear();
 }
 
@@ -154,13 +164,13 @@ Database::StoreMemtable()
    SST file using the current timestamp. */
 std::string
 Database::_generateFileName()
-{   
+{
     // Get the current time for filename uniqueness.
     std::time_t t = std::time(nullptr);
 
-    // Creat a filename with the current timestamp.
+    // Creat a filename with the current timestamp and level (first save is 0).
     std::stringstream filename;
-    filename << dbName << "/sst_" << t << ".sst";
+    filename << dbName << "/sst_0_" << t << ".sst";
 
     return filename.str();
 }

@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <string>
+
 #include "memtable.h"
 #include "sst.h"
 

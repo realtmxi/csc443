@@ -6,28 +6,28 @@
 #define SST_H
 
 #include <string>
-#include <vector>
 #include <utility>
-
+#include <vector>
 
 /** Sorted String Table (SSTable) class.
- * 
+ *
  */
-class SSTable {
-  private:
+class SSTable
+{
+   private:
     std::string file_path;
     size_t num_entries;
-    
+
     int readKey(int fd, off_t offset);
     int readValue(int fd, off_t offset);
-    
-  public:
-    SSTable(const std::string &path);
+
+   public:
+    SSTable(const std::string& path);
 
     std::vector<std::pair<int, int>> scan(int key1, int key2);
     int get(int key);
 
-    void write(const std::string& filename, 
+    void write(const std::string& filename,
                const std::vector<std::pair<int, int>>& data);
 };
 
