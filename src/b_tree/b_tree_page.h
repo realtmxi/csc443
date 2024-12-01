@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-// Enum representing the type of a B-Tree page.
 enum class BTreePageType
 {
     INVALID_PAGE = 0,
@@ -13,47 +12,39 @@ enum class BTreePageType
     LEAF_PAGE = 2,
 };
 
-/**
- * Base class for all B-Tree pages.
- * Includes common properties and methods.
- */
 class BTreePage
 {
    public:
-    // Constructor and destructor.
     BTreePage();
     explicit BTreePage(const std::vector<std::pair<int, int>>& key_value_pairs);
 
-    // Determine if the page is a leaf page.
     bool IsLeafPage() const;
     bool IsInternalPage() const;
 
-    // Set and get the page type.
     void SetPageType(BTreePageType page_type);
     BTreePageType GetPageType() const;
 
-    // Set and get the size of the page.
     void SetSize(int size);
     int GetSize() const;
 
-    // Set and get the page ID.
     void SetPageId(int page_id);
     int GetPageId() const;
 
+    // Used for the Leaf Pages
     int Get(int key) const;
     std::vector<std::pair<int, int>> Scan(int key1, int key2) const;
+    // Used for the Internal Pages
     int FindChildPage(int key) const;
 
     int GetMaxKey() const;
-
     void WriteToDisk(const std::string& filename) const;
 
    private:
-    BTreePageType page_type_ = BTreePageType::INVALID_PAGE;  // Page type.
-    int size_ = 0;             // Number of elements.
-    int page_id_ = -1;         // Page ID (optional).
-    std::vector<int> keys_;    // List of keys.
-    std::vector<int> values_;  // Corresponding values / child page IDs.
+    BTreePageType page_type_;
+    int size_;
+    int page_id_;
+    std::vector<int> keys_;
+    std::vector<int> values_;  // values / child page IDs.
 };
 
-#endif  // B_TREE_PAGE_H
+#endif

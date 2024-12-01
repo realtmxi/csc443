@@ -42,24 +42,37 @@ BTreeManager::ReadPageFromDisk(int page_id) const
         throw std::runtime_error("Failed to open B-tree file: " + filename_);
     }
 
-    std::byte buffer[PAGE_SIZE];
+    // check if page_id * PAGE_SIZE is within the file size
+    file.seekg(0, std::ios::end);
+    int file_size = file.tellg();
+    if (page_id * PAGE_SIZE >= file_size)
+    {
+        return BTreePage();
+    }
 
-    printf("Reading page from disk for pageid: %d\n", page_id);
+    // Use a byte buffer (char did not work for me)
+    std::byte buffer[PAGE_SIZE];
     file.seekg(page_id * PAGE_SIZE);
+    if (!file.good())
+    {
+        return BTreePage();
+    }
+
     file.read(reinterpret_cast<char *>(buffer), PAGE_SIZE);
     file.close();
 
     std::byte *buffer_ptr = buffer;
 
+    // Read in the page type (4 bytes)
     BTreePageType page_type =
         *reinterpret_cast<const BTreePageType *>(buffer_ptr);
     buffer_ptr += sizeof(BTreePageType);
-
     if (page_type == BTreePageType::INVALID_PAGE)
     {
         return BTreePage();
     }
 
+    // Read in the size of the page (4 bytes)
     int size = *reinterpret_cast<const int *>(buffer_ptr);
     buffer_ptr += sizeof(int);
     if (size == 0)
@@ -67,6 +80,7 @@ BTreeManager::ReadPageFromDisk(int page_id) const
         return BTreePage();
     }
 
+    // Read in the key-value pairs (8 bytes each pair)
     int num_pairs = size;
     std::vector<std::pair<int, int>> pairs;
     for (int i = 0; i < num_pairs; i++)
@@ -77,12 +91,12 @@ BTreeManager::ReadPageFromDisk(int page_id) const
         buffer_ptr += sizeof(int);
         pairs.push_back({key, value});
     }
-
     if (pairs.empty())
     {
         return BTreePage();
     }
 
+    // Create a new BTreePage object
     BTreePage page(pairs);
     page.SetPageType(page_type);
     page.SetSize(size);
@@ -94,9 +108,11 @@ BTreeManager::ReadPageFromDisk(int page_id) const
 BTreePage
 BTreeManager::TraverseToKey(int key) const
 {
+    // Start at the root page
     BTreePage page = ReadPageFromDisk(0);
     while (!page.IsLeafPage())
     {
+        // Fine the child of the root that leads us to the key and read it
         int child_page_id = page.FindChildPage(key);
         page = ReadPageFromDisk(child_page_id);
 
@@ -114,10 +130,14 @@ std::vector<std::pair<int, int>>
 BTreeManager::TraverseRange(int start_key, int end_key) const
 {
     std::vector<std::pair<int, int>> result;
+
+    // Start at the root page
     BTreePage page = ReadPageFromDisk(0);
     while (!page.IsLeafPage())
     {
-        int child_page_id = page.Get(start_key);
+        printf("Page type: %d\n", page.GetPageType());
+        // Find the child of the root that leads us to the start key and read it
+        int child_page_id = page.FindChildPage(start_key);
         page = ReadPageFromDisk(child_page_id);
 
         // If the page is invalid, return an empty result
@@ -127,16 +147,21 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
         }
     }
 
-    // Traverse the leaf pages and collect the key-value pairs
+    // page is a leaf that contains the start key. Scan the range
     while (page.IsLeafPage())
     {
+        printf("Scanning page %d\n", page.GetPageId());
         std::vector<std::pair<int, int>> pairs = page.Scan(start_key, end_key);
         result.insert(result.end(), pairs.begin(), pairs.end());
 
-        // Get the next page ID
-        int next_page_id = page.GetPageId() + 1;
+        // The leaf pages are stored consecutively on disk, so if we have not
+        // reached a key greater than end_key, we can read the next page
+        if (page.GetMaxKey() >= end_key)
+        {
+            break;
+        }
 
-        // Read the next page
+        int next_page_id = page.GetPageId() + 1;
         page = ReadPageFromDisk(next_page_id);
     }
 

@@ -22,14 +22,12 @@ BTree::SaveBTreeToDisk(const std::string& filename)
     // Save each internal page to disk.
     for (const auto& internal_page : internal_pages_)
     {
-        printf("Writing internal page to disk\n");
         internal_page.WriteToDisk(filename);
     }
 
     // Save each leaf page to disk.
     for (const auto& leaf_page : leaf_pages_)
     {
-        printf("Writing leaf page to disk\n");
         leaf_page.WriteToDisk(filename);
     }
 }

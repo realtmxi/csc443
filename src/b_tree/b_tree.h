@@ -8,25 +8,18 @@
 
 #include "b_tree_page.h"
 
-/**
- * The BTree class represents the overall structure of a B-Tree.
- * It contains a list of internal and leaf pages.
- */
 class BTree
 {
    public:
-    // Constructor that initializes the tree with key-value pairs.
+    // Constructor that transforms a list of key-value pairs into a BTree.
     explicit BTree(const std::vector<std::pair<int, int>>& data);
 
-    // Saves the BTree structure to disk as a binary file.
+    // Save the BTree to disk for a given filename.
     void SaveBTreeToDisk(const std::string& filename);
 
    private:
-    // List of internal pages.
     std::vector<BTreePage> internal_pages_;
-
-    // List of leaf pages.
     std::vector<BTreePage> leaf_pages_;
 };
 
-#endif  // B_TREE_H
+#endif

@@ -3,8 +3,8 @@
 #include <fcntl.h>   // for open
 #include <unistd.h>  // for pread
 
+#include <chrono>  // for using timestamps
 #include <climits>
-#include <ctime>       // for using time to create unique filenames
 #include <filesystem>  // for using filesystem to check if directory exists
 #include <fstream>     // for reading and writing files
 #include <set>         // for using set to track found keys
@@ -109,6 +109,7 @@ Database::Scan(int key1, int key2)
     }
 
     std::vector<std::pair<int, int>> results;
+    int range = key2 - key1;
 
     // scan memory table first
     auto memtableResults = memtable.scan(key1, key2);
@@ -122,9 +123,16 @@ Database::Scan(int key1, int key2)
         resultKeys.insert(r.first);
     }
 
+    // return if we have all possible keys
+    if (resultKeys.size() > static_cast<size_t>(range))
+    {
+        return results;
+    }
+
     // Go through SST files then
     for (const auto& file : sstFiles)
     {
+        printf("Scanning SST file: %s\n", file.c_str());
         BTreeManager btm(file);
         auto sst_results = btm.Scan(key1, key2);
         // add to results if not already found
@@ -133,6 +141,11 @@ Database::Scan(int key1, int key2)
             if (resultKeys.find(r.first) == resultKeys.end())
             {
                 results.push_back(r);
+                resultKeys.insert(r.first);
+                if (resultKeys.size() > static_cast<size_t>(range))
+                {
+                    return results;
+                }
             }
         }
     }
@@ -158,6 +171,8 @@ Database::StoreMemtable()
     sstFiles.push_back(filename);
 
     memtable.clear();
+
+    printf("Stored Memtable to SST file: %s\n", filename.c_str());
 }
 
 /* A helper function for StoreMemtable. Generate a unique filename for each
@@ -165,12 +180,15 @@ Database::StoreMemtable()
 std::string
 Database::_generateFileName()
 {
-    // Get the current time for filename uniqueness.
-    std::time_t t = std::time(nullptr);
+    // get current time in microseconds
+    auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::duration_cast<std::chrono::microseconds>(
+                      now.time_since_epoch())
+                      .count();
 
-    // Creat a filename with the current timestamp and level (first save is 0).
+    // Save the filename as sst_level_timestamp.sst. It is always 0 on first
+    // save.
     std::stringstream filename;
-    filename << dbName << "/sst_0_" << t << ".sst";
-
+    filename << dbName << "/sst_0_" << (now_ms) << ".sst";
     return filename.str();
 }
