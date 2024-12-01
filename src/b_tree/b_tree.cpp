@@ -1,18 +1,15 @@
 #include "b_tree.h"
 
-#include <cstdio>
-
-#include "b_tree_internal_page.h"
-#include "b_tree_leaf_page.h"
-
 BTree::BTree(const std::vector<std::pair<int, int>>& data)
 {
     // Create a single leaf page with the data.
-    BTreeLeafPage leaf_page(data);
+    BTreePage leaf_page(data);
+    leaf_page.SetPageType(BTreePageType::LEAF_PAGE);
 
     // Create a single internal page with the key being the max key in the leaf
     // page. The page ID is set to 1 (assuming a single-page context here).
-    BTreeInternalPage internal_page({{leaf_page.GetMaxKey(), 1}});
+    BTreePage internal_page({{leaf_page.GetMaxKey(), 1}});
+    internal_page.SetPageType(BTreePageType::INTERNAL_PAGE);
 
     // Store the pages in the tree.
     leaf_pages_.push_back(leaf_page);

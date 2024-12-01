@@ -9,8 +9,6 @@ CFILES = src/main.cpp \
          src/avl_tree.cpp \
          src/database.cpp \
          src/memtable.cpp \
-		 src/b_tree/b_tree_internal_page.cpp \
-         src/b_tree/b_tree_leaf_page.cpp \
          src/b_tree/b_tree.cpp \
          src/b_tree/b_tree_page.cpp \
 		 src/b_tree/b_tree_manager.cpp \
@@ -20,11 +18,10 @@ CFILES = src/main.cpp \
 HFILES = src/avl_tree.h \
          src/database.h \
          src/memtable.h \
-		 src/b_tree/b_tree_internal_page.h \
-         src/b_tree/b_tree_leaf_page.h \
          src/b_tree/b_tree.h \
          src/b_tree/b_tree_page.h \
 		 src/b_tree/b_tree_manager.h \
+		 src/include/common/config.h \
          src/sst.h \
 
 

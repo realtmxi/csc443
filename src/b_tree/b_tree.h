@@ -6,8 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "b_tree_internal_page.h"
-#include "b_tree_leaf_page.h"
+#include "b_tree_page.h"
 
 /**
  * The BTree class represents the overall structure of a B-Tree.
@@ -24,10 +23,10 @@ class BTree
 
    private:
     // List of internal pages.
-    std::vector<BTreeInternalPage> internal_pages_;
+    std::vector<BTreePage> internal_pages_;
 
     // List of leaf pages.
-    std::vector<BTreeLeafPage> leaf_pages_;
+    std::vector<BTreePage> leaf_pages_;
 };
 
 #endif  // B_TREE_H

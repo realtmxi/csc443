@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // Enum representing the type of a B-Tree page.
 enum class BTreePageType
@@ -21,7 +22,7 @@ class BTreePage
    public:
     // Constructor and destructor.
     BTreePage();
-    virtual ~BTreePage();
+    explicit BTreePage(const std::vector<std::pair<int, int>>& key_value_pairs);
 
     // Determine if the page is a leaf page.
     bool IsLeafPage() const;
@@ -41,13 +42,16 @@ class BTreePage
 
     int Get(int key) const;
     std::vector<std::pair<int, int>> Scan(int key1, int key2) const;
+    int FindChildPage(int key) const;
+
+    int GetMaxKey() const;
 
     void WriteToDisk(const std::string& filename) const;
 
    private:
     BTreePageType page_type_ = BTreePageType::INVALID_PAGE;  // Page type.
-    int size_ = 0;      // Number of elements.
-    int page_id_ = -1;  // Page ID (optional).
+    int size_ = 0;             // Number of elements.
+    int page_id_ = -1;         // Page ID (optional).
     std::vector<int> keys_;    // List of keys.
     std::vector<int> values_;  // Corresponding values / child page IDs.
 };

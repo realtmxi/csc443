@@ -6,8 +6,6 @@
 #include <fstream>
 
 #include "../include/common/config.h"
-#include "b_tree_internal_page.h"
-#include "b_tree_leaf_page.h"
 #include "b_tree_page.h"
 
 BTreeManager::BTreeManager(const std::string &filename) : filename_(filename) {}
@@ -18,8 +16,7 @@ BTreeManager::Get(int key)
     BTreePage page = TraverseToKey(key);
     if (page.IsLeafPage())
     {
-        auto &leaf_page = dynamic_cast<BTreeLeafPage &>(page);
-        return leaf_page.Get(key);
+        return page.Get(key);
     }
     return -1;
 }
@@ -45,31 +42,31 @@ BTreeManager::ReadPageFromDisk(int page_id) const
         throw std::runtime_error("Failed to open B-tree file: " + filename_);
     }
 
-    // Seek to the page ID * PAGE_SIZE, get from there to +PAGE_SIZE
-    file.seekg(page_id * PAGE_SIZE);
-    if (file.eof())
-    {
-        return BTreePage();
-    }
-    char buffer[PAGE_SIZE];
-    file.read(buffer, PAGE_SIZE);
+    std::byte buffer[PAGE_SIZE];
 
+    printf("Reading page from disk for pageid: %d\n", page_id);
+    file.seekg(page_id * PAGE_SIZE);
+    file.read(reinterpret_cast<char *>(buffer), PAGE_SIZE);
     file.close();
 
-    // Use a pointer to buffer for pointer arithmetic
-    const char *buffer_ptr = buffer;
+    std::byte *buffer_ptr = buffer;
 
-    // Read the page type
     BTreePageType page_type =
         *reinterpret_cast<const BTreePageType *>(buffer_ptr);
     buffer_ptr += sizeof(BTreePageType);
 
-    // Read the size
+    if (page_type == BTreePageType::INVALID_PAGE)
+    {
+        return BTreePage();
+    }
+
     int size = *reinterpret_cast<const int *>(buffer_ptr);
     buffer_ptr += sizeof(int);
+    if (size == 0)
+    {
+        return BTreePage();
+    }
 
-    // The next values are key-value pairs or key-child pairs, both are the same
-    // size
     int num_pairs = size;
     std::vector<std::pair<int, int>> pairs;
     for (int i = 0; i < num_pairs; i++)
@@ -81,23 +78,17 @@ BTreeManager::ReadPageFromDisk(int page_id) const
         pairs.push_back({key, value});
     }
 
-    // Create a new internal or leaf page based on the type
-    if (page_type == BTreePageType::INTERNAL_PAGE)
+    if (pairs.empty())
     {
-        BTreeInternalPage internal_page(pairs);
-        internal_page.SetPageId(page_id);
-        printf("Read internal page from disk\n");
-        return internal_page;
-    }
-    if (page_type == BTreePageType::LEAF_PAGE)
-    {
-        BTreeLeafPage leaf_page(pairs);
-        leaf_page.SetPageId(page_id);
-        printf("Read leaf page from disk\n");
-        return leaf_page;
+        return BTreePage();
     }
 
-    return BTreePage();
+    BTreePage page(pairs);
+    page.SetPageType(page_type);
+    page.SetSize(size);
+    page.SetPageId(page_id);
+
+    return page;
 }
 
 BTreePage
@@ -106,8 +97,7 @@ BTreeManager::TraverseToKey(int key) const
     BTreePage page = ReadPageFromDisk(0);
     while (!page.IsLeafPage())
     {
-        auto &internal_page = dynamic_cast<BTreeInternalPage &>(page);
-        int child_page_id = internal_page.GetChildPageId(key);
+        int child_page_id = page.FindChildPage(key);
         page = ReadPageFromDisk(child_page_id);
 
         // If the page is invalid, return an empty page
@@ -127,8 +117,7 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
     BTreePage page = ReadPageFromDisk(0);
     while (!page.IsLeafPage())
     {
-        auto &internal_page = dynamic_cast<BTreeInternalPage &>(page);
-        int child_page_id = internal_page.GetChildPageId(start_key);
+        int child_page_id = page.Get(start_key);
         page = ReadPageFromDisk(child_page_id);
 
         // If the page is invalid, return an empty result
@@ -141,13 +130,11 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
     // Traverse the leaf pages and collect the key-value pairs
     while (page.IsLeafPage())
     {
-        auto &leaf_page = dynamic_cast<BTreeLeafPage &>(page);
-        std::vector<std::pair<int, int>> pairs =
-            leaf_page.Scan(start_key, end_key);
+        std::vector<std::pair<int, int>> pairs = page.Scan(start_key, end_key);
         result.insert(result.end(), pairs.begin(), pairs.end());
 
         // Get the next page ID
-        int next_page_id = leaf_page.GetPageId() + 1;
+        int next_page_id = page.GetPageId() + 1;
 
         // Read the next page
         page = ReadPageFromDisk(next_page_id);

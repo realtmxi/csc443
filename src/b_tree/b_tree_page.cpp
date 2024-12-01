@@ -1,9 +1,13 @@
 #include "b_tree_page.h"
-#include <fstream>
-#include <stdexcept>
+
+#include <unistd.h>
+
 #include <algorithm>
-#include <iostream>
+#include <cstdint>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "../include/common/config.h"
@@ -14,8 +18,18 @@ BTreePage::BTreePage()
 {
 }
 
-// Destructor
-BTreePage::~BTreePage() = default;
+// Constructor
+BTreePage::BTreePage(const std::vector<std::pair<int, int>>& key_value_pairs)
+    : page_type_(BTreePageType::INVALID_PAGE),
+      size_(key_value_pairs.size()),
+      page_id_(-1)
+{
+    for (const auto& pair : key_value_pairs)
+    {
+        keys_.push_back(pair.first);
+        values_.push_back(pair.second);
+    }
+}
 
 // Check if the page is a leaf page.
 bool
@@ -74,13 +88,12 @@ BTreePage::GetPageId() const
 }
 
 void
-BTreeLeafPage::WriteToDisk(const std::string& filename) const
+BTreePage::WriteToDisk(const std::string& filename) const
 {
-    std::ofstream out_file(filename, std::ios::binary | std::ios::app);
+    std::ofstream out_file(filename, std::ios::binary);
     if (!out_file.is_open())
     {
-        throw std::runtime_error("Failed to create BTreeLeafPage file: " +
-                                 filename);
+        throw std::runtime_error("Failed to create BTree file: " + filename);
     }
     BTreePageType page_type = GetPageType();
     out_file.write(reinterpret_cast<const char*>(&page_type),
@@ -97,16 +110,22 @@ BTreeLeafPage::WriteToDisk(const std::string& filename) const
                        sizeof(values_[i]));
     }
 
-    int padding = PAGE_SIZE - (GetSize() * 2 * sizeof(int) + 8);
-    for (int i = 0; i < padding; i++)
+    int num_bytes_to_pad = PAGE_SIZE - (sizeof(page_type) + sizeof(size) +
+                                        GetSize() * (sizeof(int) * 2));
+    char zero = 0;
+    for (int i = 0; i < num_bytes_to_pad; i++)
     {
-        out_file.write(reinterpret_cast<const char*>(&padding),
-                       sizeof(padding));
+        // make a single byte of padding
+        out_file.write(&zero, sizeof(zero));
     }
 
+    out_file.flush();
     out_file.close();
-}
 
+    // print the size in bytes of the file
+    std::cout << "Size of file: " << std::filesystem::file_size(filename)
+              << " bytes" << std::endl;
+}
 
 int
 BTreePage::Get(int key) const
@@ -120,6 +139,14 @@ BTreePage::Get(int key) const
     }
 
     return -1;
+}
+
+int
+BTreePage::FindChildPage(int key) const
+{
+    auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
+    size_t index = std::distance(keys_.begin(), it);
+    return values_[index];
 }
 
 std::vector<std::pair<int, int>>
@@ -136,4 +163,10 @@ BTreePage::Scan(int key1, int key2) const
     }
 
     return result;
+}
+
+int
+BTreePage::GetMaxKey() const
+{
+    return keys_.back();
 }
