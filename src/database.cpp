@@ -172,7 +172,7 @@ Database::StoreMemtable()
 
     memtable.clear();
 
-    printf("Stored Memtable to SST file: %s\n", filename.c_str());
+    Compact();
 }
 
 /* A helper function for StoreMemtable. Generate a unique filename for each
@@ -186,9 +186,59 @@ Database::_generateFileName()
                       now.time_since_epoch())
                       .count();
 
-    // Save the filename as sst_level_timestamp.sst. It is always 0 on first
+    // Save the filename as sst_level_timestamp.sst. It is always 0000 on first
     // save.
     std::stringstream filename;
-    filename << dbName << "/sst_0_" << (now_ms) << ".sst";
+    filename << dbName << "/sst_0000_" << (now_ms) << ".sst";
     return filename.str();
+}
+
+void
+Database::Compact()
+{
+    // To compact, we will look at the most recent 2 SST files. If they have
+    // the same level, we will use BTreeManager to merge them into a new SST.
+    // If this new SST shares a level with the next most recent SST, we will
+    // merge them as well. We will continue this process until we reach an SST
+    // with a different level.
+
+    printf("Compacting...\n");
+
+    // SSTFiles are sorted by timestamp, so the most recent SST is at the end.
+    if (sstFiles.size() < 2)
+    {
+        return;
+    }
+
+    std::string filename1 = sstFiles[sstFiles.size() - 1];
+    std::string filename2 = sstFiles[sstFiles.size() - 2];
+
+    printf("Merging %s and %s\n", filename1.c_str(), filename2.c_str());
+
+    // check if they each have the same level. if not, return an error
+    // search for "sst_" and get the next 4 characters. The filename includes
+    // the path
+    std::string level1 = filename1.substr(filename1.find("sst_") + 4, 4);
+    std::string level2 = filename2.substr(filename2.find("sst_") + 4, 4);
+    printf("Level1: %s, Level2: %s\n", level1.c_str(), level2.c_str());
+    if (level1 != level2)
+    {
+        return;
+    }
+
+    BTreeManager btm(filename1);
+    std::string out_file = btm.Merge(filename2);
+    std::filesystem::rename(out_file, dbName + "/" + out_file);
+
+    // remove the merged files
+    std::filesystem::remove(filename1);
+    std::filesystem::remove(filename2);
+    sstFiles.pop_back();
+    sstFiles.pop_back();
+
+    // add the new merged file to the list of SST files
+    sstFiles.push_back(dbName + "/" + out_file);
+
+    // recursively compact
+    Compact();
 }

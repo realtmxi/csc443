@@ -47,6 +47,12 @@ void
 BTreePage::SetPageType(BTreePageType page_type)
 {
     page_type_ = page_type;
+    // if we set it to internal node, we need to add one more value to point
+    // to the right most child
+    if (page_type == BTreePageType::INTERNAL_PAGE)
+    {
+        values_.push_back(values_.back() + 1);
+    }
 }
 
 BTreePageType
@@ -82,19 +88,23 @@ BTreePage::GetPageId() const
 void
 BTreePage::WriteToDisk(const std::string& filename) const
 {
-    std::ofstream out_file(filename, std::ios::binary);
+    std::ofstream out_file(filename, std::ios::binary | std::ios::app);
     if (!out_file.is_open())
     {
         throw std::runtime_error("Failed to create BTree file: " + filename);
     }
 
+    int bytes_written = 0;
+
     // Write the page type and size to the binary file
     BTreePageType page_type = GetPageType();
     out_file.write(reinterpret_cast<const char*>(&page_type),
                    sizeof(page_type));
+    bytes_written += sizeof(page_type);
 
     int size = GetSize();
     out_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    bytes_written += sizeof(size);
 
     // Write the key-value pairs to the binary file
     for (int i = 0; i < GetSize(); i++)
@@ -103,18 +113,30 @@ BTreePage::WriteToDisk(const std::string& filename) const
                        sizeof(keys_[i]));
         out_file.write(reinterpret_cast<const char*>(&values_[i]),
                        sizeof(values_[i]));
+        bytes_written += sizeof(keys_[i]) + sizeof(values_[i]);
     }
 
-    // Pad the rest of the page with zeros.
-    int num_bytes_to_pad = PAGE_SIZE - (sizeof(page_type) + sizeof(size) +
-                                        GetSize() * (sizeof(int) * 2));
+    // Write the child page id for internal nodes (4 bytes)
+    if (page_type == BTreePageType::INTERNAL_PAGE)
+    {
+        out_file.write(reinterpret_cast<const char*>(&values_.back()),
+                       sizeof(values_.back()));
+        bytes_written += sizeof(values_.back());
+    }
+
+    // Pad the rest of the page with zeros
+    unsigned int num_bytes_to_pad = PAGE_SIZE - bytes_written;
+    printf(
+        "page_id: %d, page_type: %d, size: %d\n, bytes_written: %d\n, "
+        "num_bytes_to_pad: %d\n",
+        GetPageId(), static_cast<int>(GetPageType()), GetSize(), bytes_written,
+        num_bytes_to_pad);
     char zero = 0;
     for (int i = 0; i < num_bytes_to_pad; i++)
     {
         out_file.write(&zero, sizeof(zero));
     }
 
-    out_file.flush();
     out_file.close();
 }
 
@@ -135,11 +157,16 @@ BTreePage::Get(int key) const
 int
 BTreePage::FindChildPage(int key) const
 {
-    // Perform a binary search for the closest key greater than the input key.
-    // If the key is greater than all keys, return the last child page ID.
-    auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
-    size_t index = std::distance(keys_.begin(), it);
-    return values_[index];
+    // Perform a binary search to find the key closest to the given key and
+    // greater. If the key is greater than all keys, return the last child page.
+    auto it = std::upper_bound(keys_.begin(), keys_.end(), key);
+    if (it != keys_.end())
+    {
+        size_t index = std::distance(keys_.begin(), it);
+        return values_[index];
+    }
+
+    return values_.back();
 }
 
 std::vector<std::pair<int, int>>
@@ -153,7 +180,6 @@ BTreePage::Scan(int key1, int key2) const
     {
         if (keys_[i] >= key1 && keys_[i] <= key2)
         {
-            printf("Adding key %d\n", keys_[i]);
             result.push_back({keys_[i], values_[i]});
         }
 
@@ -170,4 +196,27 @@ int
 BTreePage::GetMaxKey() const
 {
     return keys_.back();
+}
+
+std::vector<std::pair<int, int>>
+BTreePage::GetKeyValues() const
+{
+    std::vector<std::pair<int, int>> result;
+    for (size_t i = 0; i < keys_.size(); i++)
+    {
+        result.push_back({keys_[i], values_[i]});
+    }
+
+    return result;
+}
+
+void
+BTreePage::SetValueAtIdx(int idx, int value)
+{
+    if (idx == -1)
+    {
+        values_.push_back(value);
+        return;
+    }
+    values_[idx] = value;
 }

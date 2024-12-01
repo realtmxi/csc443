@@ -16,6 +16,7 @@ class Database
     std::vector<std::string> sstFiles;
     void StoreMemtable();
     std::string _generateFileName();
+    void Compact();
 
    public:
     Database(const std::string& name, size_t memtableSize);

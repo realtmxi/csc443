@@ -39,6 +39,10 @@ class BTreePage
     int GetMaxKey() const;
     void WriteToDisk(const std::string& filename) const;
 
+    std::vector<std::pair<int, int>> GetKeyValues() const;
+
+    void SetValueAtIdx(int idx, int value);
+
    private:
     BTreePageType page_type_;
     int size_;

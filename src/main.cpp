@@ -6,17 +6,17 @@ int
 main()
 {
     std::filesystem::remove_all("db");
-    Database db("db", MEMTABLE_SIZE / 8);
+    Database db("db", MEMTABLE_SIZE);
     db.Open();
 
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 5000; i++)
     {
-        db.Put(i, i * 10);
+        db.Put(i, i);
     }
 
-    auto results = db.Scan(4, 1000);
-    for (const auto& r : results)
-    {
-        printf("Key: %d, Value: %d\n", r.first, r.second);
-    }
+    // auto results = db.Scan(200, 12000);
+    // for (const auto& r : results)
+    // {
+    //     printf("Key: %d, Value: %d\n", r.first, r.second);
+    // }
 }
