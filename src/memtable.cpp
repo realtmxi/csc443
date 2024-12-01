@@ -1,5 +1,9 @@
 #include "memtable.h"
 
+#include "include/common/config.h"
+
+Memtable::Memtable() : max_size(MEMTABLE_SIZE / 4), current_size(0) {}
+
 Memtable::Memtable(size_t memtable_size)
     : max_size(memtable_size), current_size(0)
 {

@@ -26,7 +26,7 @@ HFILES = src/avl_tree.h \
 
 
 
-main: $(CFILES)
+main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -o main $(CFILES)
 
 tests: $(CFILES)

@@ -18,7 +18,7 @@ class Database
     std::string _generateFileName();
 
    public:
-    Database(const std::string& name, size_t memtableSize = 128);
+    Database(const std::string& name, size_t memtableSize);
     void Open();
     void Close();
     void Put(int key, int value);

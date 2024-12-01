@@ -10,11 +10,13 @@ class Memtable
 {
    private:
     AVLTree t;
-    size_t max_size;      // The maximum size of the memtable
-    size_t current_size;  // The current size of the memtable
+    // The maximum amount of key-value pairs that can be stored in the Memtable.
+    size_t max_size;
+    size_t current_size;
 
    public:
-    Memtable(size_t memtable_size);
+    Memtable();
+    explicit Memtable(size_t memtable_size);
 
     void put(int key, int value);
     int get(int key);
