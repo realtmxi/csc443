@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <filesystem>
 
 #include "database.h"
@@ -10,20 +12,31 @@ main()
     Database db("db", MEMTABLE_SIZE);
     db.Open();
 
-    for (int i = 0; i < 1000000; i++)
+    // add key 1
+    db.Put(1, 10);
+    printf("Put 1: 10\n");
+
+    db.Put(2, 20);
+    // add 300000 keys
+    for (int i = 2; i < 7000000; i++)
     {
-        int key = rand() % 10000000;
-        int value = rand() % 1000000;
-        db.Put(key, value);
+        db.Put(i, i * 10);
     }
 
-    for (int i = 0; i < 1000; i++)
+    printf("Get 1: %d\n", db.Get(1));
+
+    // delete 1
+    db.Delete(1);
+
+    printf("Get 1: %d\n", db.Get(1));
+
+    // add 300000 more keys
+    for (int i = 300002; i < 600002; i++)
     {
-        int key = rand() % 10000000;
-        int value = db.Get(key);
-        if (value != -1)
-        {
-            printf("Key: %d, Value: %d\n", key, value);
-        }
+        db.Put(i, i * 10);
     }
+
+    // get 1
+    int result = db.Get(1);
+    printf("Get 1: %d\n", result);
 }

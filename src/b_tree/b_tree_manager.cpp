@@ -13,7 +13,12 @@
 #include "../include/common/config.h"
 #include "b_tree_page.h"
 
-BTreeManager::BTreeManager(const std::string &filename) : filename_(filename) {}
+BTreeManager::BTreeManager(const std::string &filename, int largest_lsm_level)
+    : filename_(filename),
+      largest_lsm_level_(largest_lsm_level),
+      remove_tombstones_(false)
+{
+}
 
 int
 BTreeManager::Get(int key)
@@ -233,6 +238,8 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     auto it1 = pairs.begin();
     auto it2 = pairs_to_merge.begin();
 
+    printf("Merging leaf pages\n");
+
     // Step 3: Merge the leaf pages into a new BTreePage
     while (page.IsLeafPage() && page_to_merge.IsLeafPage())
     {
@@ -255,6 +262,12 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
                 merged_pairs.push_back(*it1);
                 ++it1;
                 ++it2;
+            }
+
+            // remove tombstones if it's the last level
+            if (remove_tombstones_ && merged_pairs.back().second == INT_MAX)
+            {
+                merged_pairs.pop_back();
             }
 
             // Once we hit the max size, write the page to disk
@@ -294,6 +307,11 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
         {
             merged_pairs.push_back(*it1);
             ++it1;
+            // remove tombstones if it's the last level
+            if (remove_tombstones_ && merged_pairs.back().second == INT_MAX)
+            {
+                merged_pairs.pop_back();
+            }
 
             // Once we hit the max size, write the page to disk
             if (merged_pairs.size() == MAX_PAGE_KV_PAIRS)
@@ -319,6 +337,11 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
         {
             merged_pairs.push_back(*it2);
             ++it2;
+            // remove tombstones if it's the last level
+            if (remove_tombstones_ && merged_pairs.back().second == INT_MAX)
+            {
+                merged_pairs.pop_back();
+            }
 
             // Once we hit the max size, write the page to disk
             if (merged_pairs.size() == MAX_PAGE_KV_PAIRS)
@@ -342,6 +365,22 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     // write any remaining pairs to disk
     if (!merged_pairs.empty())
     {
+        // loop through pairs and remove tombstones if it's the last level
+        if (remove_tombstones_)
+        {
+            auto it = merged_pairs.begin();
+            while (it != merged_pairs.end())
+            {
+                if (it->second == INT_MAX)
+                {
+                    it = merged_pairs.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
         WriteLeafPage(temp_leaf_filename, merged_pairs, internal_node_max_keys);
     }
 
@@ -461,7 +500,7 @@ BTreeManager::ConstructInternalNodes(std::string &filename,
 
 std::string
 BTreeManager::DetermineMergeFilename(const std::string &filename1,
-                                     const std::string &filename2) const
+                                     const std::string &filename2)
 {
     // Check if they each have the same level. if not, return an error
     std::string level1 = filename1.substr(filename1.find("sst_") + 4, 4);
@@ -473,6 +512,10 @@ BTreeManager::DetermineMergeFilename(const std::string &filename1,
 
     // increment the level.
     int new_level = std::stoi(level1) + 1;
+    if (new_level > largest_lsm_level_)
+    {
+        remove_tombstones_ = true;
+    }
 
     // Create a new timestamp
     auto now = std::chrono::system_clock::now();

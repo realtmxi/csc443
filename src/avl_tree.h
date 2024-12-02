@@ -19,6 +19,7 @@ class AVLTree
     };
 
     AVLNode *root;
+    int current_size_;
 
     // Helper function for AVL Tree implementation.
     int height(AVLNode *n);
@@ -31,13 +32,12 @@ class AVLTree
                           int key2);
     void clear(AVLNode *node);
     AVLNode *insert(AVLNode *node, int key, int value);
-    AVLNode *deleteNode(AVLNode *root, int key);
 
    public:
     AVLTree();
 
+    int GetSize();
     void insert(int key, int value);
-    void remove(int key);
     int search(int key);
     std::vector<std::pair<int, int> > scan(int key1, int key2);
 

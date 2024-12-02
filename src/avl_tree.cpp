@@ -10,7 +10,7 @@ AVLTree::AVLNode::AVLNode(int k, int v)
 }
 
 /* AVLTree Constructor. */
-AVLTree::AVLTree() : root(nullptr) {}
+AVLTree::AVLTree() : root(nullptr), current_size_(0) {}
 
 /* Get the height of a node. */
 int
@@ -136,14 +136,21 @@ AVLTree::AVLNode *
 AVLTree::insert(AVLNode *node, int key, int value)
 {
     // Perform a normal BST Insertion.
-    if (!node) return new AVLNode(key, value);
+    if (!node)
+    {
+        current_size_++;
+        return new AVLNode(key, value);
+    }
 
     if (key < node->key)
         node->left = insert(node->left, key, value);
     else if (key > node->key)
         node->right = insert(node->right, key, value);
     else
+    {
+        node->value = value;
         return node;
+    }
 
     // Update the height of this ancestor node.
     node->height = 1 + std::max(height(node->left), height(node->right));
@@ -174,89 +181,10 @@ AVLTree::insert(AVLNode *node, int key, int value)
     return node;
 }
 
-/**
- * Delete a AVL node with given key from subtree with given root. It returns the
- * root of the modified subtree.
- */
-AVLTree::AVLNode *
-AVLTree::deleteNode(AVLNode *root, int key)
-{
-    // Perform a BST DELETION
-    if (root == nullptr)
-        return root;
-    else if (key < root->key)
-        root->left = deleteNode(root->left, key);
-    else
-    {
-        // Node with only one child or no child
-        if (!root->left || !root->right)
-        {
-            AVLNode *temp = root->left ? root->left : root->right;
-
-            if (!temp)
-            {
-                // No child
-                temp = root;
-                root = nullptr;
-            }
-            else
-            {
-                // One child
-                *root = *temp;
-            }
-
-            delete temp;
-        }
-        else
-        {
-            // Node with two children
-            AVLNode *temp = minValueNode(root->right);
-
-            root->key = temp->key;
-            root->value = temp->value;
-
-            root->right = deleteNode(root->right, temp->key);
-        }
-    }
-
-    // If the tree had only one node
-    if (root == nullptr) return root;
-
-    // Update height
-    root->height = 1 + std::max(height(root->left), height(root->right));
-
-    // Check the balance factor and re-balance the AVL tree if necessary
-    int balance = getBalance(root);
-
-    // Left Left Case
-    if (balance > 1 && getBalance(root->left) >= 0) return rightRotate(root);
-
-    // Left Right Case
-    if (balance > 1 && getBalance(root->left) < 0) return rightRotate(root);
-
-    // Right Right Case
-    if (balance < -1 && getBalance(root->right) <= 0) return leftRotate(root);
-
-    // Right Left Case
-    if (balance < -1 && getBalance(root->right) > 0)
-    {
-        root->right = rightRotate(root->right);
-        return leftRotate(root);
-    }
-
-    return root;
-}
-
 void
 AVLTree::insert(int key, int value)
 {
     root = insert(root, key, value);
-}
-
-void
-AVLTree::remove(int key)
-{
-    root = deleteNode(root, key);
 }
 
 /* Search for a value accociated with the given key. */
@@ -291,4 +219,12 @@ AVLTree::clear()
 {
     clear(root);
     root = nullptr;
+    current_size_ = 0;
+}
+
+/* Get the current number of AVL Tree entries. */
+int
+AVLTree::GetSize()
+{
+    return current_size_;
 }

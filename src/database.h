@@ -16,6 +16,7 @@ class Database
     void StoreMemtable();
     std::string GenerateFileName();
     void Compact();
+    int GetLargestLSMLevel();
 
    public:
     Database(const std::string& name, size_t memtableSize);
@@ -23,6 +24,7 @@ class Database
     void Close();
     void Put(int key, int value);
     int Get(int key);
+    void Delete(int key);
     std::vector<std::pair<int, int>> Scan(int key1, int key2);
 };
 

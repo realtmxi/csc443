@@ -35,6 +35,9 @@ Database::Open()
             sst_files_.push_back(entry.path().string());
         }
     }
+    // Sort descending order to maintain LSM levels
+    std::sort(sst_files_.begin(), sst_files_.end(),
+              std::greater<std::string>());
     is_open_ = true;
 }
 
@@ -66,6 +69,18 @@ Database::Put(int key, int value)
     }
 }
 
+void
+Database::Delete(int key)
+{
+    if (!is_open_)
+    {
+        printf("Database is not open\n");
+        return;
+    }
+
+    memtable_.Delete(key);
+}
+
 int
 Database::Get(int key)
 {
@@ -77,21 +92,31 @@ Database::Get(int key)
 
     // check memtable first
     auto result = memtable_.Get(key);
+    if (result == INT_MAX)
+    {
+        printf("Key %d is a tombstone in memtable\n", key);
+        return -1;
+    }
     if (result != -1)
     {
         printf("Found key %d in memtable\n", key);
         return result;
     }
 
-    // go through SST files
-    for (const auto& file : sst_files_)
+    // loop through sstfiles in reverse order
+    for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
-        BTreeManager btm(file);
+        BTreeManager btm(*it, GetLargestLSMLevel());
         result = btm.Get(key);
-        if (result != -1)
+        if (result == INT_MAX)
+        {
+            printf("Key %d is a tombstone in sstfile\n", key);
+            return -1;
+        }
+        if (result != -1 && result != INT_MAX)
         {
             // print the filename it was found in
-            printf("Found key %d in %s\n", key, file.c_str());
+            printf("Found key %d in %s\n", key, it->c_str());
             return result;
         }
     }
@@ -140,7 +165,7 @@ Database::Scan(int key1, int key2)
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
         printf("Scanning SST file: %s\n", it->c_str());
-        BTreeManager btm(*it);
+        BTreeManager btm(*it, GetLargestLSMLevel());
         auto sst_results = btm.Scan(key1, key2);
 
         if (!sst_results.empty())
@@ -173,9 +198,11 @@ Database::StoreMemtable()
 {
     // Generate a unique filename for the SST file.
     std::string filename = GenerateFileName();
+    printf("Storing memtable to %s\n", filename.c_str());
 
     // Get all kv pairs from the memtable in sorted order.
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
+    printf("Memtable size: %lu\n", result.size());
 
     // Use BTree to store the data
     BTree btree(result);
@@ -236,7 +263,7 @@ Database::Compact()
     }
     printf("Merging %s and %s\n", filename1.c_str(), filename2.c_str());
 
-    BTreeManager btm(filename1);
+    BTreeManager btm(filename1, GetLargestLSMLevel());
     std::string out_file = btm.Merge(filename2);
     std::filesystem::rename(out_file, db_name_ + "/" + out_file);
 
@@ -251,4 +278,17 @@ Database::Compact()
 
     // recursively compact
     Compact();
+}
+
+int
+Database::GetLargestLSMLevel()
+{
+    if (sst_files_.empty())
+    {
+        return 0;
+    }
+
+    // search for "sst_" and get the next 4 characters
+    std::string level = sst_files_[0].substr(sst_files_[0].find("sst_") + 4, 4);
+    return std::stoi(level);
 }
