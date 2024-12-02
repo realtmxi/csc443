@@ -11,7 +11,6 @@ class Database
    private:
     std::string dbName;
     Memtable memtable;
-    size_t memtableSize;
     bool isOpen;
     std::vector<std::string> sstFiles;
     void StoreMemtable();

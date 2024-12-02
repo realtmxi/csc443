@@ -20,6 +20,11 @@ class BTree
    private:
     std::vector<BTreePage> internal_pages_;
     std::vector<BTreePage> leaf_pages_;
+
+    void ConstructLeafPages(const std::vector<std::pair<int, int>>& data,
+                            std::vector<int>& max_keys);
+
+    void ConstructInternalNodes(std::vector<int>& max_keys);
 };
 
 #endif

@@ -2,11 +2,12 @@
 
 #include "include/common/config.h"
 
-Memtable::Memtable() : max_size(MEMTABLE_SIZE / 4), current_size(0) {}
-
 Memtable::Memtable(size_t memtable_size)
-    : max_size(memtable_size), current_size(0)
+    : max_size(memtable_size / 8), current_size(0)
 {
+    // print memtable size both in mb and number of key-value pairs
+    printf("Memtable size: %lu MB\n", memtable_size / 1024 / 1024);
+    printf("Max key-value pairs: %lu\n", max_size);
 }
 
 /* Insert a KV pair into the memtable. */

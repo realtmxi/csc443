@@ -14,10 +14,7 @@
 #include "b_tree/b_tree_manager.h"
 
 Database::Database(const std::string& name, size_t memtableSize)
-    : dbName(name),
-      memtable(memtableSize),
-      memtableSize(memtableSize),
-      isOpen(false)
+    : dbName(name), memtable(memtableSize), isOpen(false)
 {
 }
 
@@ -62,7 +59,7 @@ Database::Put(int key, int value)
     }
 
     memtable.put(key, value);
-    if (memtable.getSize() >= memtableSize)
+    if (memtable.isFull())
     {
         printf("Memtable is full\n");
         StoreMemtable();

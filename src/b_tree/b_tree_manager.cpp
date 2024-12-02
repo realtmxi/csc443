@@ -181,6 +181,7 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
 
     return result;
 }
+
 std::string
 BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
 {
@@ -257,7 +258,7 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
             }
 
             // Once we hit the max size, write the page to disk
-            if (merged_pairs.size() == MEMTABLE_SIZE)
+            if (merged_pairs.size() == MAX_PAGE_KV_PAIRS)
             {
                 WriteLeafPage(temp_leaf_filename, merged_pairs,
                               internal_node_max_keys);
@@ -295,7 +296,7 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
             ++it1;
 
             // Once we hit the max size, write the page to disk
-            if (merged_pairs.size() == MEMTABLE_SIZE)
+            if (merged_pairs.size() == MAX_PAGE_KV_PAIRS)
             {
                 WriteLeafPage(temp_leaf_filename, merged_pairs,
                               internal_node_max_keys);
@@ -320,7 +321,7 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
             ++it2;
 
             // Once we hit the max size, write the page to disk
-            if (merged_pairs.size() == MEMTABLE_SIZE)
+            if (merged_pairs.size() == MAX_PAGE_KV_PAIRS)
             {
                 WriteLeafPage(temp_leaf_filename, merged_pairs,
                               internal_node_max_keys);
@@ -403,11 +404,11 @@ BTreeManager::ConstructInternalNodes(std::string &filename,
         std::vector<BTreePage> internal_pages;
 
         // Construct internal nodes for the current layer
-        for (size_t i = 0; i < max_keys.size(); i += MEMTABLE_SIZE)
+        for (size_t i = 0; i < max_keys.size(); i += MAX_PAGE_KV_PAIRS)
         {
             std::vector<std::pair<int, int>> keys;
 
-            for (size_t j = i; j < i + MEMTABLE_SIZE && j < max_keys.size();
+            for (size_t j = i; j < i + MAX_PAGE_KV_PAIRS && j < max_keys.size();
                  j++)
             {
                 keys.push_back(
