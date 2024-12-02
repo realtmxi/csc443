@@ -9,12 +9,12 @@
 class Database
 {
    private:
-    std::string dbName;
-    Memtable memtable;
-    bool isOpen;
-    std::vector<std::string> sstFiles;
+    std::string db_name_;
+    Memtable memtable_;
+    bool is_open_;
+    std::vector<std::string> sst_files_;
     void StoreMemtable();
-    std::string _generateFileName();
+    std::string GenerateFileName();
     void Compact();
 
    public:
