@@ -1,26 +1,30 @@
 #ifndef MEMTABLE_H
 #define MEMTABLE_H
 
-#include "avl_tree.h"
 #include <string>
 #include <vector>
 
-class Memtable {
-  private:
+#include "avl_tree.h"
+
+class Memtable
+{
+   private:
     AVLTree t;
-    size_t max_size; // The maximum size of the memtable
-    size_t current_size; // The current size of the memtable
+    // The maximum amount of key-value pairs that can be stored in the Memtable.
+    int max_size_;
 
-  public:
-    Memtable(size_t memtable_size);
+   public:
+    Memtable();
+    explicit Memtable(int memtable_size);
 
-    void put(int key, int value);
-    int get(int key);
-    std::vector<std::pair<int, int>> scan(int key1, int key2);
-    
-    size_t getSize() const;
-    bool isFull() const;
-    void clear();
+    void Put(int key, int value);
+    int Get(int key);
+    std::vector<std::pair<int, int>> Scan(int key1, int key2);
+
+    int GetSize();
+    bool IsFull();
+    void Clear();
+    void Delete(int key);
 };
 
 #endif

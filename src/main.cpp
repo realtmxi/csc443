@@ -1,30 +1,42 @@
+#include <unistd.h>
+
+#include <filesystem>
+
 #include "database.h"
+#include "include/common/config.h"
 
 int
 main()
 {
-    Database db("db", 10);
+    std::filesystem::remove_all("db");
+    Database db("db", MEMTABLE_SIZE);
     db.Open();
 
-    // put 10 values
-    for (int i = 0; i < 10; i++)
+    // add key 1
+    db.Put(1, 10);
+    printf("Put 1: 10\n");
+
+    db.Put(2, 20);
+    // add 300000 keys
+    for (int i = 2; i < 7000000; i++)
     {
         db.Put(i, i * 10);
     }
 
-    // put 6 more with the same keys but different values
-    for (int i = 0; i < 6; i++)
+    printf("Get 1: %d\n", db.Get(1));
+
+    // delete 1
+    db.Delete(1);
+
+    printf("Get 1: %d\n", db.Get(1));
+
+    // add 300000 more keys
+    for (int i = 300002; i < 600002; i++)
     {
-        db.Put(i, i * 100);
+        db.Put(i, i * 10);
     }
 
-    // get 10 values
-    auto result = db.Scan(0, 9);
-    for (const auto& r : result)
-    {
-        printf("key: %d, value: %d\n", r.first, r.second);
-    }
-
-    // the result are a mix of the two values, the hundreds being the in-memory values
-    // and the tens being the first values put in, which are now in the sst files
+    // get 1
+    int result = db.Get(1);
+    printf("Get 1: %d\n", result);
 }

@@ -1,46 +1,58 @@
 #include "memtable.h"
 
-Memtable::Memtable(size_t memtable_size) 
-  : max_size(memtable_size), current_size(0) {}
+#include "include/common/config.h"
+
+Memtable::Memtable(int memtable_size) : max_size_(memtable_size / 8)
+{
+    printf("Memtable size: %d MB\n", memtable_size / 1024 / 1024);
+    printf("Max number of key-value pairs: %d\n", max_size_);
+}
 
 /* Insert a KV pair into the memtable. */
-void Memtable::put(int key, int value)
+void
+Memtable::Put(int key, int value)
 {
-  t.insert(key, value);
-  current_size++;
+    t.insert(key, value);
 }
 
 /* Search for a value associated with the given key in the Memtable. */
-int Memtable::get(int key)
+int
+Memtable::Get(int key)
 {
-  return t.search(key);
+    return t.search(key);
+}
+
+/* Delete a KV pair from the Memtable. */
+void
+Memtable::Delete(int key)
+{
+    t.insert(key, INT_MAX);
 }
 
 /* Get the current number of Memtable entries. */
-size_t Memtable::getSize() const
+int
+Memtable::GetSize()
 {
-  return current_size;
+    return t.GetSize();
 }
 
 /* Get the key-value pairs within the specified range. */
-std::vector<std::pair<int, int>> Memtable::scan(int key1, int key2)
+std::vector<std::pair<int, int>>
+Memtable::Scan(int key1, int key2)
 {
-  return t.scan(key1, key2);
+    return t.scan(key1, key2);
 }
 
 /* Check if the Memtable is full. */
-bool Memtable::isFull() const
+bool
+Memtable::IsFull()
 {
-  return current_size >= max_size;
+    return t.GetSize() >= max_size_;
 }
 
 /* Clear the Memtable. */
-void Memtable::clear()
+void
+Memtable::Clear()
 {
-  t.clear();
-  current_size = 0;
+    t.clear();
 }
-
-
-
-

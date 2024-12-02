@@ -2,8 +2,6 @@
 
 #include "buffer/buffer_pool_manager.h"
 #include "page/b_tree_page.h"
-#include "page/b_tree_leaf_page.h"
-#include "page/b_tree_internal_page.h"
 
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
