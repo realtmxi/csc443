@@ -82,6 +82,7 @@ Database::Get(int key)
     auto result = memtable.get(key);
     if (result != -1)
     {
+        printf("Found key %d in memtable\n", key);
         return result;
     }
 
@@ -92,6 +93,8 @@ Database::Get(int key)
         result = btm.Get(key);
         if (result != -1)
         {
+            // print the filename it was found in
+            printf("Found key %d in %s\n", key, file.c_str());
             return result;
         }
     }
@@ -115,6 +118,13 @@ Database::Scan(int key1, int key2)
     auto memtableResults = memtable.scan(key1, key2);
     results.insert(results.end(), memtableResults.begin(),
                    memtableResults.end());
+    // if results not empty, print where it was found
+    if (!memtableResults.empty())
+    {
+        // print the min and max keys found in the memtable
+        printf("Found keys in memtable: %d to %d\n", memtableResults[0].first,
+               memtableResults[memtableResults.size() - 1].first);
+    }
 
     // use set to track found keys
     std::set<int> resultKeys;
@@ -129,12 +139,19 @@ Database::Scan(int key1, int key2)
         return results;
     }
 
-    // Go through SST files then
-    for (const auto& file : sstFiles)
+    // Go through SST files in reverse order
+    for (auto it = sstFiles.rbegin(); it != sstFiles.rend(); ++it)
     {
-        printf("Scanning SST file: %s\n", file.c_str());
-        BTreeManager btm(file);
+        printf("Scanning SST file: %s\n", it->c_str());
+        BTreeManager btm(*it);
         auto sst_results = btm.Scan(key1, key2);
+
+        if (!sst_results.empty())
+        {
+            printf("Found keys in %s\n", it->c_str());
+            printf("Keys: %d to %d\n", sst_results[0].first,
+                   sst_results[sst_results.size() - 1].first);
+        }
         // add to results if not already found
         for (const auto& r : sst_results)
         {
@@ -202,8 +219,6 @@ Database::Compact()
     // merge them as well. We will continue this process until we reach an SST
     // with a different level.
 
-    printf("Compacting...\n");
-
     // SSTFiles are sorted by timestamp, so the most recent SST is at the end.
     if (sstFiles.size() < 2)
     {
@@ -213,18 +228,16 @@ Database::Compact()
     std::string filename1 = sstFiles[sstFiles.size() - 1];
     std::string filename2 = sstFiles[sstFiles.size() - 2];
 
-    printf("Merging %s and %s\n", filename1.c_str(), filename2.c_str());
-
     // check if they each have the same level. if not, return an error
     // search for "sst_" and get the next 4 characters. The filename includes
     // the path
     std::string level1 = filename1.substr(filename1.find("sst_") + 4, 4);
     std::string level2 = filename2.substr(filename2.find("sst_") + 4, 4);
-    printf("Level1: %s, Level2: %s\n", level1.c_str(), level2.c_str());
     if (level1 != level2)
     {
         return;
     }
+    printf("Merging %s and %s\n", filename1.c_str(), filename2.c_str());
 
     BTreeManager btm(filename1);
     std::string out_file = btm.Merge(filename2);

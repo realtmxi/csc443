@@ -5,7 +5,6 @@
 #include <chrono>
 #include <cstdio>
 #include <fstream>
-#include <iostream>
 #include <sstream>  // Add this line
 #include <string>
 #include <unordered_map>
@@ -160,6 +159,9 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
         }
     }
 
+    // print the max key of the leaf page
+    printf("Max key of leaf page: %d\n", page.GetMaxKey());
+
     // page is a leaf that contains the start key. Scan the range
     while (page.IsLeafPage())
     {
@@ -193,12 +195,6 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     std::ifstream file(filename_, std::ios::binary);
     if (!file.is_open())
     {
-        std::cerr << "Failed to open B-tree file: " << filename_ << std::endl;
-        if (file.fail())
-        {
-            std::cerr << "File open failed due to: " << strerror(errno)
-                      << std::endl;
-        }
         throw std::runtime_error("Failed to open B-tree file: " + filename_);
     }
 
@@ -209,9 +205,6 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
                                  filename_to_merge);
     }
 
-    printf("Merging %s and %s into %s\n", filename_.c_str(),
-           filename_to_merge.c_str(), merge_filename.c_str());
-
     // Step 2: Find the leaf pages of each BTree to start the merge
     int page_id = 0;
     int page_id_to_merge = 0;
@@ -219,25 +212,17 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     BTreePage page_to_merge =
         ReadPageFromDisk(page_id_to_merge, filename_to_merge);
 
-    printf("Read root pages\n");
-
     while (!page.IsLeafPage())
     {
         page_id = page.FindChildPage(INT_MIN);
         page = ReadPageFromDisk(page_id, filename_);
-        printf("pageid: %d\n", page_id);
     }
-
-    printf("Found leaf page for %s\n", filename_.c_str());
 
     while (!page_to_merge.IsLeafPage())
     {
         page_id_to_merge = page_to_merge.FindChildPage(INT_MIN);
         page_to_merge = ReadPageFromDisk(page_id_to_merge, filename_to_merge);
-        printf("pageid: %d\n", page_id_to_merge);
     }
-
-    printf("Found leaf page for %s\n", filename_to_merge.c_str());
 
     std::vector<std::pair<int, int>> merged_pairs;
     std::vector<int> internal_node_max_keys;
@@ -247,52 +232,33 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     auto it1 = pairs.begin();
     auto it2 = pairs_to_merge.begin();
 
-    printf("Starting merge\n");
-
     // Step 3: Merge the leaf pages into a new BTreePage
-    while (page.IsLeafPage() || page_to_merge.IsLeafPage())
+    while (page.IsLeafPage() && page_to_merge.IsLeafPage())
     {
-        while (it1 != pairs.end() || it2 != pairs_to_merge.end())
+        while (it1 != pairs.end() && it2 != pairs_to_merge.end())
         {
-            // If both havent ended, compare with each other
-            if (it1 != pairs.end() && it2 != pairs_to_merge.end())
-            {
-                if (it1->first < it2->first)
-                {
-                    merged_pairs.push_back(*it1);
-                    ++it1;
-                }
-                else if (it1->first > it2->first)
-                {
-                    merged_pairs.push_back(*it2);
-                    ++it2;
-                }
-                else
-                {
-                    // If the keys are the same, choose the value from the
-                    // newer page
-                    merged_pairs.push_back(*it1);
-                    ++it1;
-                    ++it2;
-                }
-            }
-            // If one has ended, add the other
-            else if (it1 != pairs.end())
+            if (it1->first < it2->first)
             {
                 merged_pairs.push_back(*it1);
                 ++it1;
             }
-            else if (it2 != pairs_to_merge.end())
+            else if (it1->first > it2->first)
             {
                 merged_pairs.push_back(*it2);
+                ++it2;
+            }
+            else
+            {
+                // If the keys are the same, choose the value from the
+                // newer page
+                merged_pairs.push_back(*it1);
+                ++it1;
                 ++it2;
             }
 
             // Once we hit the max size, write the page to disk
             if (merged_pairs.size() == MEMTABLE_SIZE)
             {
-                printf("BTreePage Full, writing to disk\n");
-                printf("max key %d\n", merged_pairs.back().first);
                 WriteLeafPage(temp_leaf_filename, merged_pairs,
                               internal_node_max_keys);
                 merged_pairs.clear();
@@ -303,79 +269,79 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
         if (it1 == pairs.end() && page.IsLeafPage())
         {
             page_id += 1;
-            printf("iterator 1 at end, reading next page with id: %d\n",
-                   page_id);
             page = ReadPageFromDisk(page_id, filename_);
-
-            // Check if the page is valid and still a leaf
-            if (page.IsLeafPage())
-            {
-                pairs = page.GetKeyValues();
-                it1 = pairs.begin();
-            }
+            pairs = page.GetKeyValues();
+            it1 = pairs.begin();
         }
 
         if (it2 == pairs_to_merge.end() && page_to_merge.IsLeafPage())
         {
             page_id_to_merge += 1;
-            printf("iterator 2 at end, reading next page with id: %d\n",
-                   page_id_to_merge);
             page_to_merge =
                 ReadPageFromDisk(page_id_to_merge, filename_to_merge);
-
-            // Check if the page is valid and still a leaf
-            if (page_to_merge.IsLeafPage())
-            {
-                pairs_to_merge = page_to_merge.GetKeyValues();
-                it2 = pairs_to_merge.begin();
-                printf("Read next page, is leaf: %d\n",
-                       static_cast<int>(page_to_merge.IsLeafPage()));
-                // print the size of page_to_merge
-                printf("page_to_merge size: %ld\n", pairs_to_merge.size());
-            }
-        }
-
-        // If both iterators have reached the end and there are no more leaf
-        // pages to read, break the loop
-        if (it1 == pairs.end() && it2 == pairs_to_merge.end())
-        {
-            printf("Both iterators at end\n");
-
-            break;
+            pairs_to_merge = page_to_merge.GetKeyValues();
+            it2 = pairs_to_merge.begin();
         }
     }
 
-    // After the loop, write any remaining pairs to disk
+    // At this point, we may have a page or page_to_merge that is not a leaf
+    // and one that is and has many more leaves. So check if one is still a leaf
+    // then loop through until we no longer have a leaf
+    while (page.IsLeafPage())
+    {
+        while (it1 != pairs.end())
+        {
+            merged_pairs.push_back(*it1);
+            ++it1;
+
+            // Once we hit the max size, write the page to disk
+            if (merged_pairs.size() == MEMTABLE_SIZE)
+            {
+                WriteLeafPage(temp_leaf_filename, merged_pairs,
+                              internal_node_max_keys);
+                merged_pairs.clear();
+            }
+        }
+
+        if (it1 == pairs.end())
+        {
+            page_id += 1;
+            page = ReadPageFromDisk(page_id, filename_);
+            pairs = page.GetKeyValues();
+            it1 = pairs.begin();
+        }
+    }
+
+    while (page_to_merge.IsLeafPage())
+    {
+        while (it2 != pairs_to_merge.end())
+        {
+            merged_pairs.push_back(*it2);
+            ++it2;
+
+            // Once we hit the max size, write the page to disk
+            if (merged_pairs.size() == MEMTABLE_SIZE)
+            {
+                WriteLeafPage(temp_leaf_filename, merged_pairs,
+                              internal_node_max_keys);
+                merged_pairs.clear();
+            }
+        }
+
+        if (it2 == pairs_to_merge.end())
+        {
+            page_id_to_merge += 1;
+            page_to_merge =
+                ReadPageFromDisk(page_id_to_merge, filename_to_merge);
+            pairs_to_merge = page_to_merge.GetKeyValues();
+            it2 = pairs_to_merge.begin();
+        }
+    }
+
+    // write any remaining pairs to disk
     if (!merged_pairs.empty())
     {
-        // there can only be max MEMTABLE_SIZE * 2 keys left. SO we can just
-        // write either 1 or 2 pages, depending on the size of the merged_pairs
-        std::vector<std::pair<int, int>> pairs1;
-        std::vector<std::pair<int, int>> pairs2;
-        for (size_t i = 0; i < merged_pairs.size(); i++)
-        {
-            if (i < MEMTABLE_SIZE)
-            {
-                pairs1.push_back(merged_pairs[i]);
-            }
-            else
-            {
-                pairs2.push_back(merged_pairs[i]);
-            }
-        }
-
-        printf(
-            "Writing remaining pairs, size1: %ld, size2: %ld\n, memtable_size: "
-            "%d\n",
-            pairs1.size(), pairs2.size(), MEMTABLE_SIZE);
-        // Write the first page
-        WriteLeafPage(temp_leaf_filename, pairs1, internal_node_max_keys);
-
-        // Write the second page if it exists
-        if (!pairs2.empty())
-        {
-            WriteLeafPage(temp_leaf_filename, pairs2, internal_node_max_keys);
-        }
+        WriteLeafPage(temp_leaf_filename, merged_pairs, internal_node_max_keys);
     }
 
     // Using the max keys from the internal nodes, construct the internal nodes
@@ -384,38 +350,18 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     // combine the internal and leaf pages into a single file
     std::ifstream temp_leaf_file(temp_leaf_filename, std::ios::binary);
     std::ifstream temp_internal_file(temp_internal_filename, std::ios::binary);
-
-    // print the sizes of each file
-    // Open the output file in binary mode
     std::ofstream output_file(merge_filename, std::ios::binary);
-
-    // Check if the file is opened properly
-    if (!output_file.is_open())
+    if (!temp_leaf_file.is_open() || !temp_internal_file.is_open() ||
+        !output_file.is_open())
     {
-        throw std::runtime_error("Failed to open output file: " +
-                                 merge_filename);
+        throw std::runtime_error("Failed to open temporary files");
     }
 
-    // Print sizes of the input files
-    temp_leaf_file.seekg(0, std::ios::end);
-    printf("Leaf file size: %ld\n", static_cast<long>(temp_leaf_file.tellg()));
-    temp_internal_file.seekg(0, std::ios::end);
-    std::streampos internal_size = temp_internal_file.tellg();
-    printf("Internal file size: %ld\n", static_cast<long>(internal_size));
-
-    // Copy contents of internal and leaf files to the output file
-    temp_internal_file.seekg(
-        0, std::ios::beg);  // Move to the start of the internal file
-    output_file << temp_internal_file.rdbuf();  // Copy internal nodes
-
-    temp_leaf_file.seekg(0,
-                         std::ios::beg);  // Move to the start of the leaf file
-    output_file << temp_leaf_file.rdbuf();  // Copy leaf nodes
-
-    // Now that data has been written, check the size of the output file
-    output_file.seekp(0, std::ios::end);  // Move the pointer to the end
-    std::streampos output_size = output_file.tellp();
-    printf("Output file size: %ld\n", static_cast<long>(output_size));
+    // Copy the contents of the temporary files to the output file
+    temp_internal_file.seekg(0, std::ios::beg);
+    output_file << temp_internal_file.rdbuf();
+    temp_leaf_file.seekg(0, std::ios::beg);
+    output_file << temp_leaf_file.rdbuf();
 
     // Close the files and remove the temporary files
     file.close();
@@ -437,7 +383,6 @@ BTreeManager::WriteLeafPage(std::string &filename,
     BTreePage page(keys);
     page.SetPageType(BTreePageType::LEAF_PAGE);
     page.SetSize(keys.size());
-    printf("Writing leaf page to disk\n");
     page.WriteToDisk(filename);
 
     // Add the max key to the internal node
@@ -450,13 +395,11 @@ BTreeManager::ConstructInternalNodes(std::string &filename,
 {
     // Holds all layers of internal nodes
     std::vector<std::vector<BTreePage>> internal_page_layers;
+    std::vector<int> internal_node_max_keys;
 
-    printf("max keys size: %ld\n", max_keys.size());
     // Loop until only one node remains in the current layer
     while (!max_keys.empty())
     {
-        printf("max keys size: %ld\n", max_keys.size());
-        std::vector<int> internal_node_max_keys;
         std::vector<BTreePage> internal_pages;
 
         // Construct internal nodes for the current layer
@@ -484,6 +427,7 @@ BTreeManager::ConstructInternalNodes(std::string &filename,
         // Save the current layer and prepare for the next
         internal_page_layers.push_back(internal_pages);
         max_keys = internal_node_max_keys;
+        internal_node_max_keys.clear();
         if (max_keys.size() == 1)
         {
             break;
@@ -494,38 +438,23 @@ BTreeManager::ConstructInternalNodes(std::string &filename,
     // The root is 0 so the roots first child is 1, the second child is 2, etc.
     // The next layer starts at the next available page_id
 
-    // Start at the root
-    printf("Writing internal nodes to disk\n");
-    int page_id = 0;
-    for (auto internal_pages : internal_page_layers)
+    int child_page_id = 0;
+    // Loop through the layers of internal nodes in reverse order
+    for (size_t i = internal_page_layers.size(); i > 0; i--)
     {
-        std::vector<BTreePage> next_internal_pages;
-
+        std::vector<BTreePage> internal_pages = internal_page_layers[i - 1];
         for (auto page : internal_pages)
         {
-            printf("page_id: %d\n", page_id);
-            page.SetPageId(page_id);
-
             // Set the child page ids for the internal node
             for (size_t k = 0; k < static_cast<size_t>(page.GetSize()); k++)
             {
-                page_id += 1;
-                page.SetValueAtIdx(k, page_id);
+                child_page_id += 1;
+                page.SetValueAtIdx(k, child_page_id);
             }
-            // as an internal node, the last child is the right most child
-            page.SetValueAtIdx(page.GetSize(), page_id + page.GetSize() + 1);
-            page_id += 1;
 
             // Write the internal node to disk
             page.WriteToDisk(filename);
-            printf("Wrote to disk\n");
-
-            // Save the next layer of internal nodes
-            next_internal_pages.push_back(page);
         }
-
-        // Prepare for the next layer
-        internal_pages = next_internal_pages;
     }
 }
 

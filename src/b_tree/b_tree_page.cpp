@@ -126,13 +126,8 @@ BTreePage::WriteToDisk(const std::string& filename) const
 
     // Pad the rest of the page with zeros
     unsigned int num_bytes_to_pad = PAGE_SIZE - bytes_written;
-    printf(
-        "page_id: %d, page_type: %d, size: %d\n, bytes_written: %d\n, "
-        "num_bytes_to_pad: %d\n",
-        GetPageId(), static_cast<int>(GetPageType()), GetSize(), bytes_written,
-        num_bytes_to_pad);
     char zero = 0;
-    for (int i = 0; i < num_bytes_to_pad; i++)
+    for (size_t i = 0; i < num_bytes_to_pad; i++)
     {
         out_file.write(&zero, sizeof(zero));
     }
