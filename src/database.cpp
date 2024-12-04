@@ -9,6 +9,7 @@
 #include <fstream>     // for reading and writing files
 #include <set>         // for using set to track found keys
 #include <sstream>     // for using stringstream to create filenames
+#include <algorithm>
 
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
