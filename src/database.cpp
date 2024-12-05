@@ -108,7 +108,7 @@ Database::Get(int key)
     // Loop through SST files in reverse order
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it) {
         // Load the Bloom filter for the current SST file
-        BloomFilter bloom_filter(1024, 3); // Use appropriate parameters
+        BloomFilter bloom_filter(1024, 3);
         bloom_filter.DeserializeFromDisk(*it + ".filter");
 
         // Check Bloom filter
@@ -175,17 +175,17 @@ Database::Scan(int key1, int key2)
         printf("Scanning SST file: %s\n", it->c_str());
 
         // Load the Bloom filter
-        BloomFilter bloom_filter(1024, 3); // Use appropriate parameters
+        BloomFilter bloom_filter(1024, 3);
         bloom_filter.DeserializeFromDisk(*it + ".filter");
 
-        // Check Bloom filter for the range
         bool may_contain = false;
-        for (int key = key1; key <= key2; ++key) {
+        int interval = std::max(1, (key2 - key1) / 1000);
+        for (int key = key1; key <= key2; key += interval) {
             if (bloom_filter.MayContain(key)) {
                 may_contain = true;
                 break;
             }
-        }
+}
         if (!may_contain) {
             printf("SST file %s does not contain any keys in range (skipped using Bloom filter)\n", it->c_str());
             continue;
