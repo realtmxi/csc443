@@ -15,9 +15,18 @@
 #include "b_tree/b_tree_manager.h"
 #include "bloom_filter/bloom_filter.h"
 
+// Define consistent Bloom filter configuration
+constexpr size_t BLOOM_FILTER_BITS = 1024;
+constexpr size_t BLOOM_FILTER_HASHES = 3;
+
 Database::Database(const std::string& name, size_t memtableSize)
     : db_name_(name), memtable_(memtableSize), is_open_(false)
 {
+    // Ensure the database name doesn't end with a slash
+    if (db_name_.back() == '/')
+    {
+        db_name_.pop_back();
+    }
 }
 
 void
@@ -34,7 +43,11 @@ Database::Open()
                db_name_.c_str());
         for (const auto& entry : std::filesystem::directory_iterator(db_name_))
         {
-            sst_files_.push_back(entry.path().string());
+            // Only include `.sst` files in the list
+            if (entry.path().extension() == ".sst")
+            {
+                sst_files_.push_back(entry.path().string());
+            }
         }
     }
     // Sort descending order to maintain LSM levels
@@ -92,7 +105,7 @@ Database::Get(int key)
         return -1;
     }
 
-    // check memtable first
+    // Check memtable first
     auto result = memtable_.Get(key);
     if (result == INT_MAX)
     {
@@ -108,7 +121,7 @@ Database::Get(int key)
     // Loop through SST files in reverse order
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it) {
         // Load the Bloom filter for the current SST file
-        BloomFilter bloom_filter(1024, 3);
+        BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
         bloom_filter.DeserializeFromDisk(*it + ".filter");
 
         // Check Bloom filter
@@ -127,7 +140,6 @@ Database::Get(int key)
         }
         if (result != -1 && result != INT_MAX)
         {
-            // print the filename it was found in
             printf("Found key %d in %s\n", key, it->c_str());
             return result;
         }
@@ -148,7 +160,7 @@ Database::Scan(int key1, int key2)
     std::vector<std::pair<int, int>> results;
     int range = key2 - key1;
 
-    // scan memory table first
+    // Scan memory table first
     auto memtable_results = memtable_.Scan(key1, key2);
     results.insert(results.end(), memtable_results.begin(), memtable_results.end());
     if (!memtable_results.empty()) {
@@ -156,14 +168,14 @@ Database::Scan(int key1, int key2)
                memtable_results.back().first);
     }
 
-    // use set to track found keys
+    // Use set to track found keys
     std::set<int> result_keys;
     for (const auto& r : results)
     {
         result_keys.insert(r.first);
     }
 
-    // return if we have all possible keys
+    // Return if we have all possible keys
     if (result_keys.size() > static_cast<size_t>(range))
     {
         return results;
@@ -175,7 +187,7 @@ Database::Scan(int key1, int key2)
         printf("Scanning SST file: %s\n", it->c_str());
 
         // Load the Bloom filter
-        BloomFilter bloom_filter(1024, 3);
+        BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
         bloom_filter.DeserializeFromDisk(*it + ".filter");
 
         bool may_contain = false;
@@ -185,7 +197,7 @@ Database::Scan(int key1, int key2)
                 may_contain = true;
                 break;
             }
-}
+        }
         if (!may_contain) {
             printf("SST file %s does not contain any keys in range (skipped using Bloom filter)\n", it->c_str());
             continue;
@@ -210,38 +222,38 @@ Database::Scan(int key1, int key2)
     return results;
 }
 
-/* Transform the memtable into an SST when it reaches capacity. */
 void
 Database::StoreMemtable()
 {
-    // Generate a unique filename for the SST file.
+    // Generate a unique filename for the SST file
     std::string filename = GenerateFileName();
     printf("Storing memtable to %s\n", filename.c_str());
 
-    // Get all kv pairs from the memtable in sorted order.
+    // Get all kv pairs from the memtable in sorted order
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
     printf("Memtable size: %lu\n", result.size());
 
-    // Create a BloomFilter and populate it with keys from the memtable.
-    BloomFilter bloom_filter(result.size() * 10, 3); // 10 bits per entry, 3 hash functions
+    // Create a BloomFilter and populate it with keys from the memtable
+    BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+
     for (const auto& pair : result) {
         bloom_filter.Insert(pair.first);
     }
 
-    // Serialize the BloomFilter to disk alongside the SST file.
+    // Serialize the BloomFilter to disk alongside the SST file
     bloom_filter.SerializeToDisk(filename + ".filter");
 
     // Use BTree to store the data
     BTree btree(result);
     btree.SaveBTreeToDisk(filename);
 
-    // Add the SST file to the list of SST files.
+    // Add the SST file to the list of SST files
     sst_files_.push_back(filename);
 
-    // Clear the memtable.
+    // Clear the memtable
     memtable_.Clear();
 
-    // Compact if necessary.
+    // Compact if necessary
     Compact();
 }
 
@@ -296,9 +308,28 @@ Database::Compact()
     std::string out_file = btm.Merge(filename2);
     std::filesystem::rename(out_file, db_name_ + "/" + out_file);
 
+    // Load Bloom filters for both files
+    BloomFilter bloom_filter1(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+    bloom_filter1.DeserializeFromDisk(filename1 + ".filter");
+
+    BloomFilter bloom_filter2(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+    bloom_filter2.DeserializeFromDisk(filename2 + ".filter");
+
+    // Create a new Bloom filter as the union of both
+    BloomFilter merged_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+    merged_filter.Union(bloom_filter1);
+    merged_filter.Union(bloom_filter2);
+
+    // Serialize the merged Bloom filter to disk
+    merged_filter.SerializeToDisk(out_file + ".filter");
+
+    printf("Merged Bloom filter for %s created and saved.\n", out_file.c_str());
+
     // remove the merged files
     std::filesystem::remove(filename1);
+    std::filesystem::remove(filename1 + ".filter");
     std::filesystem::remove(filename2);
+    std::filesystem::remove(filename2 + ".filter");
     sst_files_.pop_back();
     sst_files_.pop_back();
 

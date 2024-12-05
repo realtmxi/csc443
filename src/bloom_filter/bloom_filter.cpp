@@ -53,3 +53,13 @@ void BloomFilter::DeserializeFromDisk(const std::string &filename) {
   }
   in_file.close();
 }
+
+void BloomFilter::Union(const BloomFilter& other) {
+    if (num_bits_ != other.num_bits_ || num_hashes_ != other.num_hashes_) {
+        throw std::invalid_argument("Cannot union Bloom filters with different sizes or hash functions");
+    }
+
+    for (size_t i = 0; i < num_bits_; ++i) {
+        bit_array_[i] = bit_array_[i] || other.bit_array_[i];
+    }
+}

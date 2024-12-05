@@ -10,6 +10,7 @@ class BloomFilter {
   bool MayContain(int key) const;
   void SerializeToDisk(const std::string &filename) const;
   void DeserializeFromDisk(const std::string &filename);
+  void Union(const BloomFilter& other);
 
  private:
   size_t Hash(int key, int seed) const;

@@ -1,4 +1,4 @@
-#include "sst.h"  // Includes bloom_filter.h via sst.h
+#include "sst.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>

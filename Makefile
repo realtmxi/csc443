@@ -26,8 +26,6 @@ HFILES = src/avl_tree.h \
          src/sst.h \
          src/bloom_filter/bloom_filter.h
 
-
-
 main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -o main $(CFILES)
 
@@ -36,6 +34,7 @@ tests: $(CFILES)
 
 clean:
 	rm -f main tests
+	rm -f ../*.sst ../*.filter
 
 test: tests
 	./tests
