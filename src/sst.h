@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "./bloom_filter/bloom_filter.h"
 
 /** Sorted String Table (SSTable) class.
  *
@@ -17,6 +18,7 @@ class SSTable
    private:
     std::string file_path;
     size_t num_entries;
+    BloomFilter bloom_filter; 
 
     int readKey(int fd, off_t offset);
     int readValue(int fd, off_t offset);

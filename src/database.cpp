@@ -13,6 +13,7 @@
 
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
+#include "bloom_filter/bloom_filter.h"
 
 Database::Database(const std::string& name, size_t memtableSize)
     : db_name_(name), memtable_(memtableSize), is_open_(false)
@@ -104,9 +105,19 @@ Database::Get(int key)
         return result;
     }
 
-    // loop through sstfiles in reverse order
-    for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
-    {
+    // Loop through SST files in reverse order
+    for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it) {
+        // Load the Bloom filter for the current SST file
+        BloomFilter bloom_filter(1024, 3); // Use appropriate parameters
+        bloom_filter.DeserializeFromDisk(*it + ".filter");
+
+        // Check Bloom filter
+        if (!bloom_filter.MayContain(key)) {
+            printf("Key %d is definitely not in %s (skipped using Bloom filter)\n", key, it->c_str());
+            continue;
+        }
+
+        // Search the SST file using the BTreeManager
         BTreeManager btm(*it, GetLargestLSMLevel());
         result = btm.Get(key);
         if (result == INT_MAX)
@@ -139,14 +150,10 @@ Database::Scan(int key1, int key2)
 
     // scan memory table first
     auto memtable_results = memtable_.Scan(key1, key2);
-    results.insert(results.end(), memtable_results.begin(),
-                   memtable_results.end());
-    // if results not empty, print where it was found
-    if (!memtable_results.empty())
-    {
-        // print the min and max keys found in the memtable
-        printf("Found keys in memtable: %d to %d\n", memtable_results[0].first,
-               memtable_results[memtable_results.size() - 1].first);
+    results.insert(results.end(), memtable_results.begin(), memtable_results.end());
+    if (!memtable_results.empty()) {
+        printf("Found keys in memtable: %d to %d\n", memtable_results.front().first,
+               memtable_results.back().first);
     }
 
     // use set to track found keys
@@ -166,20 +173,30 @@ Database::Scan(int key1, int key2)
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
         printf("Scanning SST file: %s\n", it->c_str());
+
+        // Load the Bloom filter
+        BloomFilter bloom_filter(1024, 3); // Use appropriate parameters
+        bloom_filter.DeserializeFromDisk(*it + ".filter");
+
+        // Check Bloom filter for the range
+        bool may_contain = false;
+        for (int key = key1; key <= key2; ++key) {
+            if (bloom_filter.MayContain(key)) {
+                may_contain = true;
+                break;
+            }
+        }
+        if (!may_contain) {
+            printf("SST file %s does not contain any keys in range (skipped using Bloom filter)\n", it->c_str());
+            continue;
+        }
+
+        // Scan the SST file using the BTreeManager
         BTreeManager btm(*it, GetLargestLSMLevel());
         auto sst_results = btm.Scan(key1, key2);
 
-        if (!sst_results.empty())
-        {
-            printf("Found keys in %s\n", it->c_str());
-            printf("Keys: %d to %d\n", sst_results[0].first,
-                   sst_results[sst_results.size() - 1].first);
-        }
-        // add to results if not already found
-        for (const auto& r : sst_results)
-        {
-            if (result_keys.find(r.first) == result_keys.end())
-            {
+        for (const auto& r : sst_results) {
+            if (result_keys.find(r.first) == result_keys.end()) {
                 results.push_back(r);
                 result_keys.insert(r.first);
                 if (result_keys.size() > static_cast<size_t>(range))
@@ -205,6 +222,15 @@ Database::StoreMemtable()
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
     printf("Memtable size: %lu\n", result.size());
 
+    // Create a BloomFilter and populate it with keys from the memtable.
+    BloomFilter bloom_filter(result.size() * 10, 3); // 10 bits per entry, 3 hash functions
+    for (const auto& pair : result) {
+        bloom_filter.Insert(pair.first);
+    }
+
+    // Serialize the BloomFilter to disk alongside the SST file.
+    bloom_filter.SerializeToDisk(filename + ".filter");
+
     // Use BTree to store the data
     BTree btree(result);
     btree.SaveBTreeToDisk(filename);
@@ -212,8 +238,10 @@ Database::StoreMemtable()
     // Add the SST file to the list of SST files.
     sst_files_.push_back(filename);
 
+    // Clear the memtable.
     memtable_.Clear();
 
+    // Compact if necessary.
     Compact();
 }
 

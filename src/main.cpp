@@ -39,4 +39,7 @@ main()
     // get 1
     int result = db.Get(1);
     printf("Get 1: %d\n", result);
+    
+    // Test retrieval of an existing key
+    printf("Get 2: %d\n", db.Get(2));
 }
