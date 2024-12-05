@@ -13,6 +13,7 @@ CFILES = src/main.cpp \
          src/b_tree/b_tree_page.cpp \
 		 src/b_tree/b_tree_manager.cpp \
          src/sst.cpp \
+         src/bloom_filter/bloom_filter.cpp
         #  test/tests.cpp
 
 HFILES = src/avl_tree.h \
@@ -23,8 +24,7 @@ HFILES = src/avl_tree.h \
 		 src/b_tree/b_tree_manager.h \
 		 src/include/common/config.h \
          src/sst.h \
-
-
+         src/bloom_filter/bloom_filter.h
 
 main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -o main $(CFILES)
@@ -34,6 +34,7 @@ tests: $(CFILES)
 
 clean:
 	rm -f main tests
+	rm -f ../*.sst ../*.filter
 
 test: tests
 	./tests
