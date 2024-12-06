@@ -22,12 +22,13 @@ AssertEqual(int expected, int actual, const char *testName, int &testsPassed,
 {
     if (expected == actual)
     {
-        printf("PASSED: %s\n", testName);
+        printf("    PASSED: %s\n", testName);
         testsPassed++;
     }
     else
     {
-        printf("%s: FAILED: expected %d, got %d\n", testName, expected, actual);
+        printf("    %s: FAILED: expected %d, got %d\n", testName, expected,
+               actual);
         testsFailed++;
     }
 }
@@ -133,19 +134,22 @@ TestAvlTreeScan(int &totalPassed, int &totalFailed)
 }
 
 void
-TestAvlTree()
+TestAvlTree(int &overallPassed, int &overallFailed)
 {
     int totalTestsPassed = 0;
     int totalTestsFailed = 0;
 
-    printf("AVL TREE TESTS:\n");
+    printf("AVL TREE TESTS:");
     TestAvlTreeInsert(totalTestsPassed, totalTestsFailed);
     TestAvlTreeGet(totalTestsPassed, totalTestsFailed);
     TestAvlTreeScan(totalTestsPassed, totalTestsFailed);
 
-    printf("\n\nTEST SUMMARY\n");
-    printf("Passed: %d\n", totalTestsPassed);
-    printf("Failed: %d\n", totalTestsFailed);
+    printf("\n  SUMMARY\n");
+    printf("    PASSED: %d\n", totalTestsPassed);
+    printf("    FAILED: %d\n", totalTestsFailed);
+
+    overallPassed += totalTestsPassed;
+    overallFailed += totalTestsFailed;
 }
 
 /*
@@ -157,7 +161,7 @@ TestAvlTree()
 void
 TestDatabaseOpenClose(int &totalPassed, int &totalFailed)
 {
-    printf("\n\nDATABASE OPEN & CLOSE TESTS\n");
+    printf("\n  OPEN & CLOSE\n");
     Database db("test_db", MEMTABLE_SIZE);
     int testsPassed = 0;
     int testsFailed = 0;
@@ -181,7 +185,7 @@ TestDatabaseOpenClose(int &totalPassed, int &totalFailed)
 void
 TestDatabasePutGet(int &totalPassed, int &totalFailed)
 {
-    printf("\n\nDATABASE PUT & GET TESTS\n");
+    printf("\n  PUT & GET\n");
     Database db("test_db", MEMTABLE_SIZE);
     db.Open();
     int testsPassed = 0;
@@ -204,7 +208,7 @@ TestDatabasePutGet(int &totalPassed, int &totalFailed)
 void
 TestDatabaseScan(int &totalPassed, int &totalFailed)
 {
-    printf("\n\nDATABASE SCAN TESTS\n");
+    printf("\n  SCAN\n");
     Database db("test_db", MEMTABLE_SIZE);
     db.Open();
     int testsPassed = 0;
@@ -230,19 +234,22 @@ TestDatabaseScan(int &totalPassed, int &totalFailed)
 }
 
 void
-TestDatabase()
+TestDatabase(int &overallPassed, int &overallFailed)
 {
     int totalTestsPassed = 0;
     int totalTestsFailed = 0;
 
-    printf("DATABASE TESTS:\n");
+    printf("\nDATABASE TESTS:");
     TestDatabaseOpenClose(totalTestsPassed, totalTestsFailed);
     TestDatabasePutGet(totalTestsPassed, totalTestsFailed);
     TestDatabaseScan(totalTestsPassed, totalTestsFailed);
 
-    printf("\n\nDATABASE TEST SUMMARY\n");
-    printf("Passed: %d\n", totalTestsPassed);
-    printf("Failed: %d\n", totalTestsFailed);
+    printf("\n  SUMMARY\n");
+    printf("    PASSED: %d\n", totalTestsPassed);
+    printf("    FAILED: %d\n", totalTestsFailed);
+
+    overallPassed += totalTestsPassed;
+    overallFailed += totalTestsFailed;
 }
 
 /*
@@ -253,7 +260,7 @@ TestDatabase()
 void
 TestConvertMemtableToBTree(int &totalPassed, int &totalFailed)
 {
-    printf("\n\nMEMTABLE TO BTREE TESTS\n");
+    printf("\n  MEMTABLE TO BTREE\n");
     // the memtable turns into a sorted list of key-value pairs. So make a mock
     // one here
     std::vector<std::pair<int, int>> data;
@@ -269,17 +276,17 @@ TestConvertMemtableToBTree(int &totalPassed, int &totalFailed)
     auto internal_pages = btree.GetInternalPages();
 
     // check that there is 1 of each
-    AssertEqual(1, leaf_pages.size(), "1 leaf page created", totalPassed,
+    AssertEqual(1, leaf_pages.size(), "Create 1 leaf page", totalPassed,
                 totalFailed);
-    AssertEqual(1, internal_pages.size(), "1 internal page created",
-                totalPassed, totalFailed);
+    AssertEqual(1, internal_pages.size(), "Create 1 internal page", totalPassed,
+                totalFailed);
 
     // check that the leaf page has 100 key-value pairs and the internal page
     // has 1 key-value pair
     AssertEqual(100, leaf_pages[0].GetSize(),
-                "leaf page has 100 key-value pairs", totalPassed, totalFailed);
+                "Leaf page has 100 key-value pairs", totalPassed, totalFailed);
     AssertEqual(1, internal_pages[0].GetSize(),
-                "internal page has 1 key-value pair", totalPassed, totalFailed);
+                "Internal page has 1 key-value pair", totalPassed, totalFailed);
 
     // check that every key in leaf page is <= the key in the internal page
     int passed = 1;
@@ -299,7 +306,7 @@ TestConvertMemtableToBTree(int &totalPassed, int &totalFailed)
 void
 TestBTreeFiles(int &totalPassed, int &totalFailed)
 {
-    printf("\n\nBTREE FILE TESTS\n");
+    printf("\n  BTREE FILE\n");
     // make a test_db directory. Input 125k kv pairs into the db.
     // Input another 125k kv pairs into the db. this will trigger a merge.
 
@@ -425,24 +432,34 @@ TestBTreeFiles(int &totalPassed, int &totalFailed)
 }
 
 void
-BTreeTests()
+BTreeTests(int &overallPassed, int &overallFailed)
 {
     int totalPassed = 0;
     int totalFailed = 0;
 
+    printf("\n\nBTREE TESTS:");
     TestConvertMemtableToBTree(totalPassed, totalFailed);
     TestBTreeFiles(totalPassed, totalFailed);
 
-    printf("\n\nBTREE TEST SUMMARY\n");
-    printf("Passed: %d\n", totalPassed);
-    printf("Failed: %d\n", totalFailed);
+    printf("\n  SUMMARY\n");
+    printf("    PASSED: %d\n", totalPassed);
+    printf("    FAILED: %d\n", totalFailed);
+
+    overallPassed += totalPassed;
+    overallFailed += totalFailed;
 }
 
 int
 main()
 {
-    TestAvlTree();
-    TestDatabase();
-    BTreeTests();
+    int overallPassed = 0;
+    int overallFailed = 0;
+    TestAvlTree(overallPassed, overallFailed);
+    TestDatabase(overallPassed, overallFailed);
+    BTreeTests(overallPassed, overallFailed);
+
+    printf("\n\nOVERALL\n");
+    printf("  PASSED: %d\n", overallPassed);
+    printf("  FAILED: %d\n", overallFailed);
     return 0;
 }
