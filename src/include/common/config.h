@@ -1,5 +1,5 @@
+#include <climits>  // INT_MAX
 #include <cstdint>
-#include <climits> // INT_MAX
 
 using frame_id_t = int32_t;  // frame id type
 using page_id_t = int32_t;   // page id type

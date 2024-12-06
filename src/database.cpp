@@ -3,13 +3,13 @@
 #include <fcntl.h>   // for open
 #include <unistd.h>  // for pread
 
+#include <algorithm>
 #include <chrono>  // for using timestamps
 #include <climits>
 #include <filesystem>  // for using filesystem to check if directory exists
 #include <fstream>     // for reading and writing files
 #include <set>         // for using set to track found keys
 #include <sstream>     // for using stringstream to create filenames
-#include <algorithm>
 
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
@@ -35,12 +35,9 @@ Database::Open()
     if (!std::filesystem::exists(db_name_))
     {
         std::filesystem::create_directory(db_name_);
-        printf("Created Database: %s\n", db_name_.c_str());
     }
     else
     {
-        printf("Database already exists: %s\nLoading files...\n",
-               db_name_.c_str());
         for (const auto& entry : std::filesystem::directory_iterator(db_name_))
         {
             // Only include `.sst` files in the list
@@ -59,7 +56,6 @@ Database::Open()
 void
 Database::Close()
 {
-    printf("Closing Database: %s\n", db_name_.c_str());
     if (memtable_.GetSize() > 0)
     {
         StoreMemtable();
@@ -72,14 +68,12 @@ Database::Put(int key, int value)
 {
     if (!is_open_)
     {
-        printf("Database is not open\n");
         return;
     }
 
     memtable_.Put(key, value);
     if (memtable_.IsFull())
     {
-        printf("Memtable is full\n");
         StoreMemtable();
     }
 }
@@ -89,7 +83,6 @@ Database::Delete(int key)
 {
     if (!is_open_)
     {
-        printf("Database is not open\n");
         return;
     }
 
@@ -101,7 +94,6 @@ Database::Get(int key)
 {
     if (!is_open_)
     {
-        printf("Database is not open\n");
         return -1;
     }
 
@@ -109,24 +101,23 @@ Database::Get(int key)
     auto result = memtable_.Get(key);
     if (result == INT_MAX)
     {
-        printf("Key %d is a tombstone in memtable\n", key);
         return -1;
     }
     if (result != -1)
     {
-        printf("Found key %d in memtable\n", key);
         return result;
     }
 
     // Loop through SST files in reverse order
-    for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it) {
+    for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
+    {
         // Load the Bloom filter for the current SST file
         BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
         bloom_filter.DeserializeFromDisk(*it + ".filter");
 
         // Check Bloom filter
-        if (!bloom_filter.MayContain(key)) {
-            printf("Key %d is definitely not in %s (skipped using Bloom filter)\n", key, it->c_str());
+        if (!bloom_filter.MayContain(key))
+        {
             continue;
         }
 
@@ -135,12 +126,10 @@ Database::Get(int key)
         result = btm.Get(key);
         if (result == INT_MAX)
         {
-            printf("Key %d is a tombstone in sstfile\n", key);
             return -1;
         }
         if (result != -1 && result != INT_MAX)
         {
-            printf("Found key %d in %s\n", key, it->c_str());
             return result;
         }
     }
@@ -153,7 +142,6 @@ Database::Scan(int key1, int key2)
 {
     if (!is_open_)
     {
-        printf("Database is not open\n");
         return {};
     }
 
@@ -162,11 +150,8 @@ Database::Scan(int key1, int key2)
 
     // Scan memory table first
     auto memtable_results = memtable_.Scan(key1, key2);
-    results.insert(results.end(), memtable_results.begin(), memtable_results.end());
-    if (!memtable_results.empty()) {
-        printf("Found keys in memtable: %d to %d\n", memtable_results.front().first,
-               memtable_results.back().first);
-    }
+    results.insert(results.end(), memtable_results.begin(),
+                   memtable_results.end());
 
     // Use set to track found keys
     std::set<int> result_keys;
@@ -184,31 +169,14 @@ Database::Scan(int key1, int key2)
     // Go through SST files in reverse order
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
-        printf("Scanning SST file: %s\n", it->c_str());
-
-        // Load the Bloom filter
-        BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
-        bloom_filter.DeserializeFromDisk(*it + ".filter");
-
-        bool may_contain = false;
-        int interval = std::max(1, (key2 - key1) / 1000);
-        for (int key = key1; key <= key2; key += interval) {
-            if (bloom_filter.MayContain(key)) {
-                may_contain = true;
-                break;
-            }
-        }
-        if (!may_contain) {
-            printf("SST file %s does not contain any keys in range (skipped using Bloom filter)\n", it->c_str());
-            continue;
-        }
-
         // Scan the SST file using the BTreeManager
         BTreeManager btm(*it, GetLargestLSMLevel());
         auto sst_results = btm.Scan(key1, key2);
 
-        for (const auto& r : sst_results) {
-            if (result_keys.find(r.first) == result_keys.end()) {
+        for (const auto& r : sst_results)
+        {
+            if (result_keys.find(r.first) == result_keys.end())
+            {
                 results.push_back(r);
                 result_keys.insert(r.first);
                 if (result_keys.size() > static_cast<size_t>(range))
@@ -227,16 +195,15 @@ Database::StoreMemtable()
 {
     // Generate a unique filename for the SST file
     std::string filename = GenerateFileName();
-    printf("Storing memtable to %s\n", filename.c_str());
 
     // Get all kv pairs from the memtable in sorted order
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
-    printf("Memtable size: %lu\n", result.size());
 
     // Create a BloomFilter and populate it with keys from the memtable
     BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
 
-    for (const auto& pair : result) {
+    for (const auto& pair : result)
+    {
         bloom_filter.Insert(pair.first);
     }
 
@@ -302,7 +269,6 @@ Database::Compact()
     {
         return;
     }
-    printf("Merging %s and %s\n", filename1.c_str(), filename2.c_str());
 
     BTreeManager btm(filename1, GetLargestLSMLevel());
     std::string out_file = btm.Merge(filename2);
@@ -322,8 +288,6 @@ Database::Compact()
 
     // Serialize the merged Bloom filter to disk
     merged_filter.SerializeToDisk(out_file + ".filter");
-
-    printf("Merged Bloom filter for %s created and saved.\n", out_file.c_str());
 
     // remove the merged files
     std::filesystem::remove(filename1);

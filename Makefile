@@ -11,26 +11,26 @@ CFILES = src/main.cpp \
          src/memtable.cpp \
          src/b_tree/b_tree.cpp \
          src/b_tree/b_tree_page.cpp \
-		 src/b_tree/b_tree_manager.cpp \
+         src/b_tree/b_tree_manager.cpp \
          src/sst.cpp \
-         src/bloom_filter/bloom_filter.cpp
-        #  test/tests.cpp
+         src/bloom_filter/bloom_filter.cpp \
+         test/tests.cpp
 
 HFILES = src/avl_tree.h \
          src/database.h \
          src/memtable.h \
          src/b_tree/b_tree.h \
          src/b_tree/b_tree_page.h \
-		 src/b_tree/b_tree_manager.h \
-		 src/include/common/config.h \
+         src/b_tree/b_tree_manager.h \
+         src/include/common/config.h \
          src/sst.h \
          src/bloom_filter/bloom_filter.h
 
 main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -o main $(CFILES)
 
-tests: $(CFILES)
-	$(CC) $(CFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp
+tests: $(CFILES) $(HFILES)
+	$(CC) $(CFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp src/b_tree/b_tree.cpp src/b_tree/b_tree_page.cpp src/b_tree/b_tree_manager.cpp src/bloom_filter/bloom_filter.cpp
 
 clean:
 	rm -f main tests

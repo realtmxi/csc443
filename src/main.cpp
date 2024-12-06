@@ -1,9 +1,13 @@
 #include <unistd.h>
+
 #include <filesystem>
+
 #include "database.h"
 #include "include/common/config.h"
 
-int main() {
+int
+main()
+{
     std::filesystem::remove_all("db");
     Database db("db", MEMTABLE_SIZE);
     db.Open();
@@ -15,7 +19,8 @@ int main() {
     db.Put(2, 20);
 
     // Add 300000 keys
-    for (int i = 2; i < 7000000; i++) {
+    for (int i = 2; i < 7000000; i++)
+    {
         db.Put(i, i * 10);
     }
 
@@ -26,7 +31,8 @@ int main() {
     printf("Get 1 after delete: %d\n", db.Get(1));
 
     // Add 300000 more keys
-    for (int i = 300002; i < 600002; i++) {
+    for (int i = 300002; i < 600002; i++)
+    {
         db.Put(i, i * 10);
     }
 

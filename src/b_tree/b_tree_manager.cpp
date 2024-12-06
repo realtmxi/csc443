@@ -5,11 +5,11 @@
 #include <chrono>
 #include <cstdio>
 #include <fstream>
-#include <sstream> 
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <iomanip>
 
 #include "../include/common/config.h"
 #include "b_tree_page.h"
@@ -165,9 +165,6 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
         }
     }
 
-    // print the max key of the leaf page
-    printf("Max key of leaf page: %d\n", page.GetMaxKey());
-
     // page is a leaf that contains the start key. Scan the range
     while (page.IsLeafPage())
     {
@@ -238,8 +235,6 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     auto pairs_to_merge = page_to_merge.GetKeyValues();
     auto it1 = pairs.begin();
     auto it2 = pairs_to_merge.begin();
-
-    printf("Merging leaf pages\n");
 
     // Step 3: Merge the leaf pages into a new BTreePage
     while (page.IsLeafPage() && page_to_merge.IsLeafPage())
@@ -528,8 +523,6 @@ BTreeManager::DetermineMergeFilename(const std::string &filename1,
     std::stringstream new_filename;
     new_filename << "sst_" << std::setfill('0') << std::setw(4) << new_level
                  << "_" << (now_ms) << ".sst";
-
-    printf("Merging into %s\n", new_filename.str().c_str());
 
     return new_filename.str();
 }
