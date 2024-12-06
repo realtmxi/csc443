@@ -287,7 +287,7 @@ Database::Compact()
     merged_filter.Union(bloom_filter2);
 
     // Serialize the merged Bloom filter to disk
-    merged_filter.SerializeToDisk(out_file + ".filter");
+    merged_filter.SerializeToDisk(db_name_ + "/" + out_file + ".filter");
 
     // remove the merged files
     std::filesystem::remove(filename1);
