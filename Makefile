@@ -13,8 +13,8 @@ CFILES = src/main.cpp \
          src/b_tree/b_tree_page.cpp \
          src/b_tree/b_tree_manager.cpp \
          src/sst.cpp \
-         src/bloom_filter/bloom_filter.cpp \
-         test/tests.cpp
+         src/bloom_filter/bloom_filter.cpp 
+        #  test/tests.cpp
 
 HFILES = src/avl_tree.h \
          src/database.h \

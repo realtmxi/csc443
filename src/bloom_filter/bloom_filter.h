@@ -7,7 +7,8 @@
 class BloomFilter
 {
    public:
-    BloomFilter(size_t num_bits, size_t num_hashes);
+    BloomFilter(size_t num_bits);
+    explicit BloomFilter(const std::string &filename);
     void Insert(int key);
     bool MayContain(int key) const;
     void SerializeToDisk(const std::string &filename) const;

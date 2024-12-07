@@ -114,13 +114,6 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
     page.SetSize(size);
     page.SetPageId(page_id);
 
-    // if the page is an internal page, read the child page IDs
-    if (page_type == BTreePageType::INTERNAL_PAGE)
-    {
-        int child_page_id = *reinterpret_cast<const int *>(buffer_ptr);
-        page.SetValueAtIdx(-1, child_page_id);
-    }
-
     return page;
 }
 

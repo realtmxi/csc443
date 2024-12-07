@@ -14,10 +14,7 @@
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
 #include "bloom_filter/bloom_filter.h"
-
-// Define consistent Bloom filter configuration
-constexpr size_t BLOOM_FILTER_BITS = 1024;
-constexpr size_t BLOOM_FILTER_HASHES = 3;
+#include "include/common/config.h"
 
 Database::Database(const std::string& name, size_t memtableSize)
     : db_name_(name), memtable_(memtableSize), is_open_(false)
@@ -44,6 +41,16 @@ Database::Open()
             if (entry.path().extension() == ".sst")
             {
                 sst_files_.push_back(entry.path().string());
+            }
+
+            // Load the Bloom filters for each SST file
+            if (entry.path().extension() == ".filter")
+            {
+                BloomFilter bloom_filter(entry.path().string());
+                // remove the .filter extension and add to the map
+                std::string sst_file = entry.path().string();
+                sst_file = sst_file.substr(0, sst_file.size() - 7);
+                bloom_filters_.insert({sst_file, bloom_filter});
             }
         }
     }
@@ -112,8 +119,7 @@ Database::Get(int key)
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
         // Load the Bloom filter for the current SST file
-        BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
-        bloom_filter.DeserializeFromDisk(*it + ".filter");
+        auto bloom_filter = bloom_filters_.find(*it)->second;
 
         // Check Bloom filter
         if (!bloom_filter.MayContain(key))
@@ -199,8 +205,9 @@ Database::StoreMemtable()
     // Get all kv pairs from the memtable in sorted order
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
 
-    // Create a BloomFilter and populate it with keys from the memtable
-    BloomFilter bloom_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+    // Create a BloomFilter and populate it with keys from the memtable. 8 bits
+    // per entry
+    BloomFilter bloom_filter(BLOOM_FILTER_BITS);
 
     for (const auto& pair : result)
     {
@@ -209,6 +216,9 @@ Database::StoreMemtable()
 
     // Serialize the BloomFilter to disk alongside the SST file
     bloom_filter.SerializeToDisk(filename + ".filter");
+
+    // add the bloom filter to the map
+    bloom_filters_.insert({filename, bloom_filter});
 
     // Use BTree to store the data
     BTree btree(result);
@@ -275,19 +285,17 @@ Database::Compact()
     std::filesystem::rename(out_file, db_name_ + "/" + out_file);
 
     // Load Bloom filters for both files
-    BloomFilter bloom_filter1(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
-    bloom_filter1.DeserializeFromDisk(filename1 + ".filter");
-
-    BloomFilter bloom_filter2(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
-    bloom_filter2.DeserializeFromDisk(filename2 + ".filter");
+    BloomFilter bloom_filter1(filename1 + ".filter");
+    BloomFilter bloom_filter2(filename2 + ".filter");
 
     // Create a new Bloom filter as the union of both
-    BloomFilter merged_filter(BLOOM_FILTER_BITS, BLOOM_FILTER_HASHES);
+    BloomFilter merged_filter(BLOOM_FILTER_BITS);
     merged_filter.Union(bloom_filter1);
     merged_filter.Union(bloom_filter2);
 
     // Serialize the merged Bloom filter to disk
-    merged_filter.SerializeToDisk(db_name_ + "/" + out_file + ".filter");
+    std::string out_filter = db_name_ + "/" + out_file + ".filter";
+    merged_filter.SerializeToDisk(out_filter);
 
     // remove the merged files
     std::filesystem::remove(filename1);
@@ -299,6 +307,11 @@ Database::Compact()
 
     // add the new merged file to the list of SST files
     sst_files_.push_back(db_name_ + "/" + out_file);
+
+    // add the new bloom filter to the map
+    bloom_filters_.insert({db_name_ + "/" + out_file, merged_filter});
+    bloom_filters_.erase(filename1 + ".filter");
+    bloom_filters_.erase(filename2 + ".filter");
 
     // recursively compact
     Compact();

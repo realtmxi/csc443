@@ -3,11 +3,21 @@
 #include <fstream>
 #include <functional>
 
-// Constructor: Initializes the Bloom filter with a given number of bits and
-// hash functions.
-BloomFilter::BloomFilter(size_t num_bits, size_t num_hashes)
-    : bit_array_(num_bits, false), num_hashes_(num_hashes), num_bits_(num_bits)
+#include "../include/common/config.h"
+
+// Constructor: Initializes the Bloom filter with a given number of bits
+BloomFilter::BloomFilter(size_t num_bits)
+    : bit_array_(num_bits, false), num_bits_(num_bits)
 {
+    // optimal hash functions is k = (m/n) * ln(2), where m is the
+    // number of bits and n is the number of keys.
+    num_hashes_ = static_cast<size_t>(std::round(
+        (num_bits_ / static_cast<double>(MAX_KEYS_IN_MEMTABLE)) * std::log(2)));
+}
+
+BloomFilter::BloomFilter(const std::string &filename)
+{
+    DeserializeFromDisk(filename);
 }
 
 // Inserts a key into the Bloom filter by setting the corresponding bits.
@@ -41,8 +51,6 @@ BloomFilter::Hash(int key, int seed) const
     std::hash<int> hasher;
     return hasher(key ^ seed);
 }
-
-// Serializes the Bloom filter to a binary file for persistent storage.
 void
 BloomFilter::SerializeToDisk(const std::string &filename) const
 {
@@ -51,27 +59,40 @@ BloomFilter::SerializeToDisk(const std::string &filename) const
                    sizeof(num_bits_));
     out_file.write(reinterpret_cast<const char *>(&num_hashes_),
                    sizeof(num_hashes_));
-    for (bool bit : bit_array_)
+
+    size_t num_bytes = (num_bits_ + 7) / 8;  // Round up to the nearest byte
+    std::vector<uint8_t> byte_array(num_bytes, 0);
+
+    for (size_t i = 0; i < num_bits_; ++i)
     {
-        out_file.write(reinterpret_cast<const char *>(&bit), sizeof(bit));
+        if (bit_array_[i])
+        {
+            byte_array[i / 8] |= (1 << (i % 8));
+        }
     }
+
+    out_file.write(reinterpret_cast<const char *>(byte_array.data()),
+                   num_bytes);
     out_file.close();
 }
 
-// Deserializes the Bloom filter from a binary file and restores its state.
 void
 BloomFilter::DeserializeFromDisk(const std::string &filename)
 {
     std::ifstream in_file(filename, std::ios::binary);
     in_file.read(reinterpret_cast<char *>(&num_bits_), sizeof(num_bits_));
     in_file.read(reinterpret_cast<char *>(&num_hashes_), sizeof(num_hashes_));
+
+    size_t num_bytes = (num_bits_ + 7) / 8;  // Round up to the nearest byte
+    std::vector<uint8_t> byte_array(num_bytes, 0);
+    in_file.read(reinterpret_cast<char *>(byte_array.data()), num_bytes);
+
     bit_array_.resize(num_bits_);
     for (size_t i = 0; i < num_bits_; ++i)
     {
-        bool bit;
-        in_file.read(reinterpret_cast<char *>(&bit), sizeof(bit));
-        bit_array_[i] = bit;
+        bit_array_[i] = (byte_array[i / 8] & (1 << (i % 8))) != 0;
     }
+
     in_file.close();
 }
 
