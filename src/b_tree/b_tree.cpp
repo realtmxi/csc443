@@ -103,3 +103,15 @@ BTree::SaveBTreeToDisk(const std::string& filename)
         leaf_page.WriteToDisk(filename);
     }
 }
+
+std::vector<BTreePage>
+BTree::GetLeafPages()
+{
+    return leaf_pages_;
+}
+
+std::vector<BTreePage>
+BTree::GetInternalPages()
+{
+    return internal_pages_;
+}

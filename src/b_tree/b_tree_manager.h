@@ -16,12 +16,15 @@ class BTreeManager
     // Merge the BTree with another BTree file, return output filename
     std::string Merge(const std::string& filename_to_merge);
 
+    // used for testing, would otherwise be private
+    BTreePage TraverseToKey(int key) const;
+
    private:
     std::string filename_;
     int largest_lsm_level_;
     bool remove_tombstones_;
     BTreePage ReadPageFromDisk(int page_id, const std::string& filename) const;
-    BTreePage TraverseToKey(int key) const;
+
     std::vector<std::pair<int, int>> TraverseRange(int start_key,
                                                    int end_key) const;
     std::string MergeBTreeFromFile(const std::string& filename_to_merge);

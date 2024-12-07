@@ -17,6 +17,10 @@ class BTree
     // Save the BTree to disk for a given filename.
     void SaveBTreeToDisk(const std::string& filename);
 
+    // Testing Only:
+    std::vector<BTreePage> GetLeafPages();
+    std::vector<BTreePage> GetInternalPages();
+
    private:
     std::vector<BTreePage> internal_pages_;
     std::vector<BTreePage> leaf_pages_;
