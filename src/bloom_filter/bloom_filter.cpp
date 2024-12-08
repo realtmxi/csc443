@@ -3,7 +3,7 @@
 #include <fstream>
 #include <functional>
 
-#include "../include/common/config.h"
+#include "../config.h"
 
 // Constructor: Initializes the Bloom filter with a given number of bits
 BloomFilter::BloomFilter(size_t num_bits)

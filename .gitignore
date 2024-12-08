@@ -2,6 +2,8 @@ db/
 build/
 main
 tests
+*.filter
+*.sst
 
 #==============================================================================#
 # File extensions to be ignored anywhere in the tree.

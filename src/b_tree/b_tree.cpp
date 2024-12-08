@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "../include/common/config.h"
+#include "../config.h"
 #include "b_tree_page.h"
 
 BTree::BTree(const std::vector<std::pair<int, int>>& data)

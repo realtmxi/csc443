@@ -17,13 +17,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../include/common/config.h"
+#include "../config.h"
 #include "b_tree_page.h"
 
-BTreeManager::BTreeManager(const std::string &filename, int largest_lsm_level)
+BTreeManager::BTreeManager(const std::string &filename, int largest_lsm_level,
+                           BufferPool &buffer_pool)
     : filename_(filename),
       largest_lsm_level_(largest_lsm_level),
-      remove_tombstones_(false)
+      remove_tombstones_(false),
+      buffer_pool_(buffer_pool)
 {
 }
 
@@ -74,7 +76,10 @@ BTreeManager::BinarySearchGet(int key) const
     while (left <= right)
     {
         int mid = left + (right - left) / 2;
-        BTreePage page = ReadPageFromDisk(mid, filename_);
+
+        // check if this filename+mid exists in the buffer pool
+        // before reading from disk
+        BTreePage page = GetPageFromBufferOrDisk(filename_, mid);
         page.GetMaxKey();
 
         // if page is an internal page, consider it to be -1 (less than any key)
@@ -195,12 +200,14 @@ BTreePage
 BTreeManager::TraverseToKey(int key) const
 {
     // Start at the root page
-    BTreePage page = ReadPageFromDisk(0, filename_);
+    BTreePage page = GetPageFromBufferOrDisk(filename_, 0);
     while (!page.IsLeafPage())
     {
         // Fine the child of the root that leads us to the key and read it
         int child_page_id = page.FindChildPage(key);
-        page = ReadPageFromDisk(child_page_id, filename_);
+        // check if this filename+child_page_id exists in the buffer pool
+        // before reading from disk
+        page = GetPageFromBufferOrDisk(filename_, child_page_id);
 
         // If the page is invalid, return an empty page
         if (page.GetPageType() == BTreePageType::INVALID_PAGE)
@@ -218,12 +225,14 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
     std::vector<std::pair<int, int>> result;
 
     // Start at the root page
-    BTreePage page = ReadPageFromDisk(0, filename_);
+    BTreePage page = GetPageFromBufferOrDisk(filename_, 0);
     while (!page.IsLeafPage())
     {
         // Find the child of the root that leads us to the start key and read it
         int child_page_id = page.FindChildPage(start_key);
-        page = ReadPageFromDisk(child_page_id, filename_);
+        // check if this filename+child_page_id exists in the buffer pool
+        // before reading from disk
+        page = GetPageFromBufferOrDisk(filename_, child_page_id);
 
         // If the page is invalid, return an empty result
         if (page.GetPageType() == BTreePageType::INVALID_PAGE)
@@ -246,7 +255,10 @@ BTreeManager::TraverseRange(int start_key, int end_key) const
         }
 
         int next_page_id = page.GetPageId() + 1;
-        page = ReadPageFromDisk(next_page_id, filename_);
+
+        // check if this filename+next_page_id exists in the buffer pool
+        // before reading from disk
+        page = GetPageFromBufferOrDisk(filename_, next_page_id);
     }
 
     return result;
@@ -580,3 +592,14 @@ BTreeManager::DetermineMergeFilename(const std::string &filename1,
 
     return new_filename.str();
 }
+
+BTreePage
+BTreeManager::GetPageFromBufferOrDisk(const std::string &filename,
+                                      int page_id) const
+{
+    auto load_page_from_disk = [this](int page_id,
+                                      const std::string &filename) -> BTreePage
+    { return ReadPageFromDisk(page_id, filename); };
+
+    return buffer_pool_.GetPageFromId(filename, page_id, load_page_from_disk);
+};

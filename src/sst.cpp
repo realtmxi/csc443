@@ -7,7 +7,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#include "include/common/config.h"
+#include "config.h"
 
 SSTable::SSTable(const std::string& path) : file_path(path)
 {

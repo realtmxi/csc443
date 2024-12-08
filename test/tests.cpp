@@ -8,8 +8,9 @@
 #include "../src/b_tree/b_tree.h"
 #include "../src/b_tree/b_tree_manager.h"
 #include "../src/b_tree/b_tree_page.h"
+#include "../src/buffer_pool/buffer_pool.h"
+#include "../src/config.h"
 #include "../src/database.h"
-#include "../src/include/common/config.h"
 
 /*
 
@@ -27,7 +28,7 @@ AssertEqual(int expected, int actual, const char *testName, int &testsPassed,
     }
     else
     {
-        printf("    %s: FAILED: expected %d, got %d\n", testName, expected,
+        printf("    FAILED: %s. expected %d, got %d\n", testName, expected,
                actual);
         testsFailed++;
     }
@@ -383,7 +384,8 @@ TestBTreeFiles(int &totalPassed, int &totalFailed)
                 totalPassed, totalFailed);
 
     // load in the merged btree file and check for the updated value
-    BTreeManager btm(filename, 1);
+    BufferPool bp(1);
+    BTreeManager btm(filename, 1, bp);
     BTreePage page = btm.TraverseToKey(1);
     AssertEqual(100, page.Get(1), "Update a key", totalPassed, totalFailed);
 

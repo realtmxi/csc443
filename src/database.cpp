@@ -14,14 +14,15 @@
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
 #include "bloom_filter/bloom_filter.h"
-#include "include/common/config.h"
+#include "config.h"
 
 Database::Database(const std::string& name, size_t memtableSize,
                    bool use_binary_search)
     : db_name_(name),
       memtable_(memtableSize),
       use_binary_search_(use_binary_search),
-      is_open_(false)
+      is_open_(false),
+      buffer_pool_(MAX_BUFFER_POOL_SIZE)
 {
     // Ensure the database name doesn't end with a slash
     if (db_name_.back() == '/')
@@ -132,7 +133,7 @@ Database::Get(int key)
         }
 
         // Search the SST file using the BTreeManager
-        BTreeManager btm(*it, GetLargestLSMLevel());
+        BTreeManager btm(*it, GetLargestLSMLevel(), buffer_pool_);
         if (use_binary_search_)
         {
             result = btm.BinarySearchGet(key);
@@ -188,7 +189,7 @@ Database::Scan(int key1, int key2)
     for (auto it = sst_files_.rbegin(); it != sst_files_.rend(); ++it)
     {
         // Scan the SST file using the BTreeManager
-        BTreeManager btm(*it, GetLargestLSMLevel());
+        BTreeManager btm(*it, GetLargestLSMLevel(), buffer_pool_);
         auto sst_results = btm.Scan(key1, key2);
 
         for (const auto& r : sst_results)
@@ -292,7 +293,7 @@ Database::Compact()
         return;
     }
 
-    BTreeManager btm(filename1, GetLargestLSMLevel());
+    BTreeManager btm(filename1, GetLargestLSMLevel(), buffer_pool_);
     std::string out_file = btm.Merge(filename2);
     std::filesystem::rename(out_file, db_name_ + "/" + out_file);
 
