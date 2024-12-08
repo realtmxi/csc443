@@ -2,8 +2,14 @@
 
 #include "b_tree_manager.h"
 
+#include <fcntl.h>   // For open, O_DIRECT
+#include <unistd.h>  // For close, read
+
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>  // For posix_memalign
+#include <cstring>  // For memset
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -44,35 +50,93 @@ BTreeManager::Merge(const std::string &filename_to_merge)
     return MergeBTreeFromFile(filename_to_merge);
 }
 
+int
+BTreeManager::BinarySearchGet(int key) const
+{
+    // For this, we will not utilize the internal nodes and instead go straight
+    // to the leaves. So first, find the size of the file, divide by 4096 to get
+    // the number of pages. Then load in the middle page, check the min and max
+    // key, use that to determine which page to load next. Continue until we
+    // find the key or reach a leaf page.
+    std::ifstream file(filename_, std::ios::binary);
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Failed to open B-tree file: " + filename_);
+    }
+
+    file.seekg(0, std::ios::end);
+    int file_size = file.tellg();
+    int num_pages = file_size / PAGE_SIZE;
+
+    int left = 0;
+    int right = num_pages - 1;
+
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+        BTreePage page = ReadPageFromDisk(mid, filename_);
+        page.GetMaxKey();
+
+        // if page is an internal page, consider it to be -1 (less than any key)
+        if (page.GetPageType() == BTreePageType::INTERNAL_PAGE)
+        {
+            right = mid - 1;
+            continue;
+        }
+
+        if (page.GetMinKey() <= key && page.GetMaxKey() >= key)
+        {
+            return page.Get(key);
+        }
+
+        if (page.GetMinKey() > key)
+        {
+            right = mid - 1;
+        }
+        else
+        {
+            left = mid + 1;
+        }
+    }
+
+    return -1;
+}
+
 BTreePage
 BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
 {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open())
+    // Open the file with no cache
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0)
     {
         throw std::runtime_error("Failed to open B-tree file: " + filename);
     }
+    fcntl(fd, F_NOCACHE, 1);
 
-    // check if page_id * PAGE_SIZE is within the file size
-    file.seekg(0, std::ios::end);
-    int file_size = file.tellg();
-    if (page_id * PAGE_SIZE >= file_size)
+    // Allocate aligned memory for the buffer
+    void *aligned_buffer;
+    if (posix_memalign(&aligned_buffer, PAGE_SIZE, PAGE_SIZE) != 0)
     {
+        close(fd);
+        throw std::runtime_error("Failed to allocate aligned memory");
+    }
+    std::memset(aligned_buffer, 0, PAGE_SIZE);
+
+    // Calculate the offset for the requested page
+    off_t offset = static_cast<off_t>(page_id) * PAGE_SIZE;
+
+    // Read the page data
+    ssize_t bytes_read = pread(fd, aligned_buffer, PAGE_SIZE, offset);
+    if (bytes_read <= 0)
+    {
+        // Cleanup and return an empty page if the read failed
+        free(aligned_buffer);
+        close(fd);
+
         return BTreePage();
     }
 
-    // Use a byte buffer (char did not work for me)
-    std::byte buffer[PAGE_SIZE];
-    file.seekg(page_id * PAGE_SIZE);
-    if (!file.good())
-    {
-        return BTreePage();
-    }
-
-    file.read(reinterpret_cast<char *>(buffer), PAGE_SIZE);
-    file.close();
-
-    std::byte *buffer_ptr = buffer;
+    std::byte *buffer_ptr = static_cast<std::byte *>(aligned_buffer);
 
     // Read in the page type (4 bytes)
     BTreePageType page_type =
@@ -80,6 +144,8 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
     buffer_ptr += sizeof(BTreePageType);
     if (page_type == BTreePageType::INVALID_PAGE)
     {
+        free(aligned_buffer);
+        close(fd);
         return BTreePage();
     }
 
@@ -88,6 +154,8 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
     buffer_ptr += sizeof(int);
     if (size == 0)
     {
+        free(aligned_buffer);
+        close(fd);
         return BTreePage();
     }
 
@@ -100,11 +168,13 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
         buffer_ptr += sizeof(int);
         int value = *reinterpret_cast<const int *>(buffer_ptr);
         buffer_ptr += sizeof(int);
-        pairs.push_back({key, value});
+        pairs.emplace_back(key, value);
     }
 
     if (pairs.empty())
     {
+        free(aligned_buffer);
+        close(fd);
         return BTreePage();
     }
 
@@ -113,6 +183,10 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
     page.SetPageType(page_type);
     page.SetSize(size);
     page.SetPageId(page_id);
+
+    // Clean up
+    free(aligned_buffer);
+    close(fd);
 
     return page;
 }
@@ -188,19 +262,8 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     std::string temp_leaf_filename = "temp_leaf_file.sst";
     std::string temp_internal_filename = "temp_internal_file.sst";
 
-    // Step 1: Open two input buffers for the BTree files
-    std::ifstream file(filename_, std::ios::binary);
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Failed to open B-tree file: " + filename_);
-    }
-
-    std::ifstream file_to_merge(filename_to_merge, std::ios::binary);
-    if (!file_to_merge.is_open())
-    {
-        throw std::runtime_error("Failed to open B-tree file: " +
-                                 filename_to_merge);
-    }
+    // Step 1: Open two input buffers for the two B-trees. This is done on the
+    // fly in the merge process to avoid loading the entire B-tree into memory.
 
     // Step 2: Find the leaf pages of each BTree to start the merge
     int page_id = 0;
@@ -393,8 +456,6 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     output_file << temp_leaf_file.rdbuf();
 
     // Close the files and remove the temporary files
-    file.close();
-    file_to_merge.close();
     output_file.close();
     temp_leaf_file.close();
     temp_internal_file.close();

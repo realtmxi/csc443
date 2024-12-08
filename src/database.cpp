@@ -16,8 +16,12 @@
 #include "bloom_filter/bloom_filter.h"
 #include "include/common/config.h"
 
-Database::Database(const std::string& name, size_t memtableSize)
-    : db_name_(name), memtable_(memtableSize), is_open_(false)
+Database::Database(const std::string& name, size_t memtableSize,
+                   bool use_binary_search)
+    : db_name_(name),
+      memtable_(memtableSize),
+      use_binary_search_(use_binary_search),
+      is_open_(false)
 {
     // Ensure the database name doesn't end with a slash
     if (db_name_.back() == '/')
@@ -129,7 +133,15 @@ Database::Get(int key)
 
         // Search the SST file using the BTreeManager
         BTreeManager btm(*it, GetLargestLSMLevel());
-        result = btm.Get(key);
+        if (use_binary_search_)
+        {
+            result = btm.BinarySearchGet(key);
+        }
+        else
+        {
+            result = btm.Get(key);
+        }
+
         if (result == INT_MAX)
         {
             return -1;
@@ -205,7 +217,8 @@ Database::StoreMemtable()
     // Get all kv pairs from the memtable in sorted order
     auto result = memtable_.Scan(INT_MIN, INT_MAX);
 
-    // Create a BloomFilter and populate it with keys from the memtable. 8 bits
+    // Create a BloomFilter and populate it with keys from the memtable. 8
+    // bits
     // per entry
     BloomFilter bloom_filter(BLOOM_FILTER_BITS);
 
@@ -219,7 +232,6 @@ Database::StoreMemtable()
 
     // add the bloom filter to the map
     bloom_filters_.insert({filename, bloom_filter});
-
     // Use BTree to store the data
     BTree btree(result);
     btree.SaveBTreeToDisk(filename);

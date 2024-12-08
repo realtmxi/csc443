@@ -13,6 +13,7 @@ class Database
    private:
     std::string db_name_;
     Memtable memtable_;
+    bool use_binary_search_;
     bool is_open_;
     std::vector<std::string> sst_files_;
     std::unordered_map<std::string, BloomFilter> bloom_filters_;
@@ -22,7 +23,8 @@ class Database
     int GetLargestLSMLevel();
 
    public:
-    Database(const std::string& name, size_t memtableSize);
+    Database(const std::string& name, size_t memtableSize,
+             bool use_binary_search = false);
     void Open();
     void Close();
     void Put(int key, int value);
