@@ -2,7 +2,9 @@
 #define DATABASE_H
 
 #include <string>
+#include <unordered_map>
 
+#include "bloom_filter/bloom_filter.h"
 #include "memtable.h"
 #include "sst.h"
 
@@ -13,6 +15,7 @@ class Database
     Memtable memtable_;
     bool is_open_;
     std::vector<std::string> sst_files_;
+    std::unordered_map<std::string, BloomFilter> bloom_filters_;
     void StoreMemtable();
     std::string GenerateFileName();
     void Compact();

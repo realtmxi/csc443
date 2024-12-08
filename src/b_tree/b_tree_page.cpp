@@ -153,7 +153,7 @@ int
 BTreePage::FindChildPage(int key) const
 {
     // Perform a binary search to find the key closest to the given key and
-    // greater. If the key is greater than all keys, return the last child page.
+    // greater.
     auto it = std::upper_bound(keys_.begin(), keys_.end(), key);
     if (it != keys_.end())
     {
@@ -161,7 +161,7 @@ BTreePage::FindChildPage(int key) const
         return values_[index];
     }
 
-    return values_.back();
+    return -1;
 }
 
 std::vector<std::pair<int, int>>

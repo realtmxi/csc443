@@ -7,8 +7,10 @@
 #include <fstream>
 #include <stdexcept>
 
+#include "include/common/config.h"
+
 SSTable::SSTable(const std::string& path)
-    : file_path(path), bloom_filter(1024, 3)
+    : file_path(path), bloom_filter(BLOOM_FILTER_BITS)
 {
     struct stat buf;
     if (stat(file_path.c_str(), &buf) != 0)
@@ -174,8 +176,7 @@ SSTable::write(const std::string& filename,
     }
 
     // Create a Bloom filter for the keys
-    BloomFilter bloom_filter(data.size() * 10,
-                             3);  // 10 bits per entry, 3 hash functions
+    BloomFilter bloom_filter(BLOOM_FILTER_BITS);
 
     // Write each key-value pair to the file
     for (const auto& kv : data)
