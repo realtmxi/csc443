@@ -449,6 +449,106 @@ BTreeTests(int &overallPassed, int &overallFailed)
     overallFailed += totalFailed;
 }
 
+/*
+    Bloom Filter Tests
+    author: Patrick
+*/
+
+/* Test basic insertion and membership functionality */
+void TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed) {
+    printf("\n\nBLOOM FILTER INSERT AND MEMBERSHIP TESTS\n");
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    BloomFilter filter(1024);
+
+    printf(" INSERTING KEYS INTO BLOOM FILTER\n");
+    filter.Insert(42);
+    filter.Insert(84);
+    filter.Insert(126);
+
+    AssertEqual(true, filter.MayContain(42), "Key 42 exists", testsPassed, testsFailed);
+    AssertEqual(true, filter.MayContain(84), "Key 84 exists", testsPassed, testsFailed);
+    AssertEqual(true, filter.MayContain(126), "Key 126 exists", testsPassed, testsFailed);
+
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+/* Test Bloom filter union functionality */
+void TestBloomFilterUnion(int &totalPassed, int &totalFailed) {
+    printf("\n\nBLOOM FILTER UNION TESTS\n");
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    BloomFilter filter1(1024);
+    BloomFilter filter2(1024);
+
+    printf(" INSERTING KEYS INTO BLOOM FILTERS\n");
+    filter1.Insert(1);
+    filter1.Insert(2);
+    filter2.Insert(3);
+    filter2.Insert(4);
+
+    printf(" PERFORMING UNION OF TWO BLOOM FILTERS\n");
+    filter1.Union(filter2);
+
+    AssertEqual(true, filter1.MayContain(1), "Key 1 exists after union", testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(2), "Key 2 exists after union", testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(3), "Key 3 exists after union", testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(4), "Key 4 exists after union", testsPassed, testsFailed);    
+
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+/* Test serialization and deserialization of Bloom filter */
+void TestBloomFilterSerialization(int &totalPassed, int &totalFailed) {
+    printf("\n\nBLOOM FILTER SERIALIZATION TESTS\n");
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    BloomFilter filter(1024);
+
+    printf(" INSERTING KEYS INTO BLOOM FILTER\n");
+    filter.Insert(10);
+    filter.Insert(20);
+    filter.Insert(30);
+
+    printf(" SERIALIZING BLOOM FILTER TO DISK\n");
+    filter.SerializeToDisk("bloom_filter_test.filter");
+
+    printf(" DESERIALIZING BLOOM FILTER FROM DISK\n");
+    BloomFilter deserializedFilter("bloom_filter_test.filter");
+
+    AssertEqual(true, deserializedFilter.MayContain(10), "Key 10 exists after deserialization", testsPassed, testsFailed);
+    AssertEqual(true, deserializedFilter.MayContain(20), "Key 20 exists after deserialization", testsPassed, testsFailed);
+    AssertEqual(true, deserializedFilter.MayContain(30), "Key 30 exists after deserialization", testsPassed, testsFailed);
+
+    std::filesystem::remove("bloom_filter_test.filter");
+
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+}
+
+/* Top-level function to run all Bloom Filter tests */
+void TestBloomFilter(int &overallPassed, int &overallFailed) {
+    int totalTestsPassed = 0;
+    int totalTestsFailed = 0;
+
+    printf("\nBLOOM FILTER TESTS:");
+    TestBloomFilterInsertAndMembership(totalTestsPassed, totalTestsFailed);
+    TestBloomFilterUnion(totalTestsPassed, totalTestsFailed);
+    TestBloomFilterSerialization(totalTestsPassed, totalTestsFailed);
+
+    printf("\n  SUMMARY\n");
+    printf("    PASSED: %d\n", totalTestsPassed);
+    printf("    FAILED: %d\n", totalTestsFailed);
+
+    overallPassed += totalTestsPassed;
+    overallFailed += totalTestsFailed;
+}
+
 int
 main()
 {
@@ -457,6 +557,7 @@ main()
     TestAvlTree(overallPassed, overallFailed);
     TestDatabase(overallPassed, overallFailed);
     BTreeTests(overallPassed, overallFailed);
+    TestBloomFilter(overallPassed, overallFailed);
 
     printf("\n\nOVERALL\n");
     printf("  PASSED: %d\n", overallPassed);
