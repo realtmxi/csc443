@@ -9,8 +9,8 @@
 #include "../src/b_tree/b_tree_manager.h"
 #include "../src/b_tree/b_tree_page.h"
 #include "../src/buffer_pool/buffer_pool.h"
+#include "../src/config.h"
 #include "../src/database.h"
-#include "../src/include/common/config.h"
 
 /*
 

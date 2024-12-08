@@ -14,7 +14,7 @@
 #include "b_tree/b_tree.h"
 #include "b_tree/b_tree_manager.h"
 #include "bloom_filter/bloom_filter.h"
-#include "include/common/config.h"
+#include "config.h"
 
 Database::Database(const std::string& name, size_t memtableSize,
                    bool use_binary_search)

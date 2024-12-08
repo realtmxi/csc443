@@ -20,7 +20,7 @@ SHARED_H_FILES = src/avl_tree.h \
          src/b_tree/b_tree.h \
          src/b_tree/b_tree_page.h \
          src/b_tree/b_tree_manager.h \
-         src/include/common/config.h \
+         src/config.h \
          src/sst.h \
          src/bloom_filter/bloom_filter.h \
          src/buffer_pool/buffer_pool.h

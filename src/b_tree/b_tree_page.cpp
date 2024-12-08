@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "../include/common/config.h"
+#include "../config.h"
 
 // Constructor for an empty, invalid page.
 BTreePage::BTreePage()

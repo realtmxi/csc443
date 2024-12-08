@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../include/common/config.h"
+#include "../config.h"
 #include "b_tree_page.h"
 
 BTreeManager::BTreeManager(const std::string &filename, int largest_lsm_level,

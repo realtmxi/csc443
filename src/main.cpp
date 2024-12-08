@@ -4,8 +4,8 @@
 #include <fstream>
 #include <map>
 
+#include "config.h"
 #include "database.h"
-#include "include/common/config.h"
 
 void
 Part2Experiment()

@@ -1,6 +1,6 @@
 #include "memtable.h"
 
-#include "include/common/config.h"
+#include "config.h"
 
 Memtable::Memtable(int memtable_size) : max_size_(memtable_size / 8) {}
 
