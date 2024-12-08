@@ -434,9 +434,10 @@ TestBTreeFiles(int &totalPassed, int &totalFailed)
 void
 TestBTreeGetsCorrectness(int &totalPassed, int &totalFailed)
 {
-    // make test_db1 and test_db2 directories. Input 400k kv pairs into db1 and db2.
-    // They each have the same data, but db1 uses a BTree and db2 uses a BTree with
-    // binary search. get 100 random keys from each db and compare the results.
+    // make test_db1 and test_db2 directories. Input 400k kv pairs into db1 and
+    // db2. They each have the same data, but db1 uses a BTree and db2 uses a
+    // BTree with binary search. get 100 random keys from each db and compare
+    // the results.
     printf("\n  BTREE GET CORRECTNESS\n");
 
     // input 400k kv pairs into db1
@@ -462,15 +463,19 @@ TestBTreeGetsCorrectness(int &totalPassed, int &totalFailed)
         if (db1.Get(key) != db2.Get(key))
         {
             failed = 1;
-            AssertEqual(db1.Get(key), db2.Get(key), "Get key from BTree and BTree with binary search",
+            AssertEqual(db1.Get(key), db2.Get(key),
+                        "Get key from BTree and BTree with binary search",
                         testsPassed, testsFailed);
-                        break;
+            break;
         }
     }
 
-    if (failed == 0) {
-        AssertEqual(1, 1, "Get and compare keys from BTree and BTree with binary search",
-                    testsPassed, testsFailed);
+    if (failed == 0)
+    {
+        AssertEqual(
+            1, 1,
+            "Get and compare keys from BTree and BTree with binary search",
+            testsPassed, testsFailed);
     }
 
     totalPassed += testsPassed;
@@ -507,7 +512,9 @@ BTreeTests(int &overallPassed, int &overallFailed)
 */
 
 /* Test basic insertion and membership functionality */
-void TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed) {
+void
+TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed)
+{
     printf("\n  INSERT AND MEMBERSHIP\n");
     int testsPassed = 0;
     int testsFailed = 0;
@@ -518,16 +525,21 @@ void TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed) {
     filter.Insert(84);
     filter.Insert(126);
 
-    AssertEqual(true, filter.MayContain(42), "Key 42 exists", testsPassed, testsFailed);
-    AssertEqual(true, filter.MayContain(84), "Key 84 exists", testsPassed, testsFailed);
-    AssertEqual(true, filter.MayContain(126), "Key 126 exists", testsPassed, testsFailed);
+    AssertEqual(true, filter.MayContain(42), "Key 42 exists", testsPassed,
+                testsFailed);
+    AssertEqual(true, filter.MayContain(84), "Key 84 exists", testsPassed,
+                testsFailed);
+    AssertEqual(true, filter.MayContain(126), "Key 126 exists", testsPassed,
+                testsFailed);
 
     totalPassed += testsPassed;
     totalFailed += testsFailed;
 }
 
 /* Test Bloom filter union functionality */
-void TestBloomFilterUnion(int &totalPassed, int &totalFailed) {
+void
+TestBloomFilterUnion(int &totalPassed, int &totalFailed)
+{
     printf("\n  UNION\n");
     int testsPassed = 0;
     int testsFailed = 0;
@@ -541,17 +553,23 @@ void TestBloomFilterUnion(int &totalPassed, int &totalFailed) {
     filter2.Insert(4);
     filter1.Union(filter2);
 
-    AssertEqual(true, filter1.MayContain(1), "Key 1 exists after union", testsPassed, testsFailed);
-    AssertEqual(true, filter1.MayContain(2), "Key 2 exists after union", testsPassed, testsFailed);
-    AssertEqual(true, filter1.MayContain(3), "Key 3 exists after union", testsPassed, testsFailed);
-    AssertEqual(true, filter1.MayContain(4), "Key 4 exists after union", testsPassed, testsFailed);    
+    AssertEqual(true, filter1.MayContain(1), "Key 1 exists after union",
+                testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(2), "Key 2 exists after union",
+                testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(3), "Key 3 exists after union",
+                testsPassed, testsFailed);
+    AssertEqual(true, filter1.MayContain(4), "Key 4 exists after union",
+                testsPassed, testsFailed);
 
     totalPassed += testsPassed;
     totalFailed += testsFailed;
 }
 
 /* Test serialization and deserialization of Bloom filter */
-void TestBloomFilterSerialization(int &totalPassed, int &totalFailed) {
+void
+TestBloomFilterSerialization(int &totalPassed, int &totalFailed)
+{
     printf("\n  SERIALIZATION\n");
     int testsPassed = 0;
     int testsFailed = 0;
@@ -565,9 +583,15 @@ void TestBloomFilterSerialization(int &totalPassed, int &totalFailed) {
     filter.SerializeToDisk("bloom_filter_test.filter");
     BloomFilter deserializedFilter("bloom_filter_test.filter");
 
-    AssertEqual(true, deserializedFilter.MayContain(10), "Key 10 exists after deserialization", testsPassed, testsFailed);
-    AssertEqual(true, deserializedFilter.MayContain(20), "Key 20 exists after deserialization", testsPassed, testsFailed);
-    AssertEqual(true, deserializedFilter.MayContain(30), "Key 30 exists after deserialization", testsPassed, testsFailed);
+    AssertEqual(true, deserializedFilter.MayContain(10),
+                "Key 10 exists after deserialization", testsPassed,
+                testsFailed);
+    AssertEqual(true, deserializedFilter.MayContain(20),
+                "Key 20 exists after deserialization", testsPassed,
+                testsFailed);
+    AssertEqual(true, deserializedFilter.MayContain(30),
+                "Key 30 exists after deserialization", testsPassed,
+                testsFailed);
 
     std::filesystem::remove("bloom_filter_test.filter");
 
@@ -576,7 +600,9 @@ void TestBloomFilterSerialization(int &totalPassed, int &totalFailed) {
 }
 
 /* Top-level function to run all Bloom Filter tests */
-void TestBloomFilter(int &overallPassed, int &overallFailed) {
+void
+TestBloomFilter(int &overallPassed, int &overallFailed)
+{
     int totalTestsPassed = 0;
     int totalTestsFailed = 0;
 

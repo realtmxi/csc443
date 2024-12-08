@@ -4,8 +4,7 @@ CC = g++
 # Compiler flags
 CFLAGS = -std=c++17 -Wall -Wextra -O2
 
-TEST_FILES = test/tests.cpp \
-             src/avl_tree.cpp \
+SHARED_C_FILES = src/avl_tree.cpp \
              src/database.cpp \
              src/memtable.cpp \
              src/sst.cpp \
@@ -14,18 +13,7 @@ TEST_FILES = test/tests.cpp \
              src/b_tree/b_tree_manager.cpp \
              src/bloom_filter/bloom_filter.cpp
 
-# Source and header files
-CFILES = src/main.cpp \
-         src/avl_tree.cpp \
-         src/database.cpp \
-         src/memtable.cpp \
-         src/b_tree/b_tree.cpp \
-         src/b_tree/b_tree_page.cpp \
-         src/b_tree/b_tree_manager.cpp \
-         src/sst.cpp \
-         src/bloom_filter/bloom_filter.cpp
-
-HFILES = src/avl_tree.h \
+SHARED_H_FILES = src/avl_tree.h \
          src/database.h \
          src/memtable.h \
          src/b_tree/b_tree.h \
@@ -35,11 +23,11 @@ HFILES = src/avl_tree.h \
          src/sst.h \
          src/bloom_filter/bloom_filter.h
 
-main: $(CFILES) $(HFILES)
-	$(CC) $(CFLAGS) -o main $(CFILES)
+main: $(SHARED_C_FILES) $(SHARED_H_FILES)
+	$(CC) $(CFLAGS) -o main src/main.cpp $(SHARED_C_FILES)
 
-tests: $(TEST_FILES) $(HFILES)
-	$(CC) $(CFLAGS) -o tests $(TEST_FILES)
+tests: $(SHARED_C_FILES) $(SHARED_H_FILES)
+	$(CC) $(CFLAGS) -o tests test/tests.cpp $(SHARED_C_FILES)
 
 clean:
 	rm -f main tests
@@ -49,4 +37,4 @@ test: tests
 	./tests
 
 format:
-	clang-format -i $(CFILES) $(HFILES)
+	clang-format -i src/main.cpp test/tests.cpp $(SHARED_C_FILES) $(SHARED_H_FILES)
