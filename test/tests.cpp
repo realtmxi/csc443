@@ -432,6 +432,57 @@ TestBTreeFiles(int &totalPassed, int &totalFailed)
 }
 
 void
+TestBTreeGetsCorrectness(int &totalPassed, int &totalFailed)
+{
+    // make test_db1 and test_db2 directories. Input 400k kv pairs into db1 and db2.
+    // They each have the same data, but db1 uses a BTree and db2 uses a BTree with
+    // binary search. get 100 random keys from each db and compare the results.
+    printf("\n  BTREE GET CORRECTNESS\n");
+
+    // input 400k kv pairs into db1
+    Database db1("test_db1", MEMTABLE_SIZE);
+    Database db2("test_db2", MEMTABLE_SIZE, true);
+    db1.Open();
+    db2.Open();
+
+    for (int i = 0; i < 400000; i++)
+    {
+        db1.Put(i, i * 10);
+        db2.Put(i, i * 10);
+    }
+
+    // get 100 random keys from each db and compare the results
+    int testsPassed = 0;
+    int testsFailed = 0;
+
+    int failed = 0;
+    for (int i = 0; i < 300; i++)
+    {
+        int key = rand() % 400000;
+        if (db1.Get(key) != db2.Get(key))
+        {
+            failed = 1;
+            AssertEqual(db1.Get(key), db2.Get(key), "Get key from BTree and BTree with binary search",
+                        testsPassed, testsFailed);
+                        break;
+        }
+    }
+
+    if (failed == 0) {
+        AssertEqual(1, 1, "Get and compare keys from BTree and BTree with binary search",
+                    testsPassed, testsFailed);
+    }
+
+    totalPassed += testsPassed;
+    totalFailed += testsFailed;
+
+    db1.Close();
+
+    std::filesystem::remove_all("test_db1");
+    std::filesystem::remove_all("test_db2");
+}
+
+void
 BTreeTests(int &overallPassed, int &overallFailed)
 {
     int totalPassed = 0;
@@ -440,6 +491,7 @@ BTreeTests(int &overallPassed, int &overallFailed)
     printf("\n\nBTREE TESTS:");
     TestConvertMemtableToBTree(totalPassed, totalFailed);
     TestBTreeFiles(totalPassed, totalFailed);
+    TestBTreeGetsCorrectness(totalPassed, totalFailed);
 
     printf("\n  SUMMARY\n");
     printf("    PASSED: %d\n", totalPassed);
