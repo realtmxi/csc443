@@ -5,12 +5,14 @@
 #include <utility>
 #include <vector>
 
+#include "../buffer_pool/buffer_pool.h"
 #include "b_tree_page.h"
 
 class BTreeManager
 {
    public:
-    explicit BTreeManager(const std::string& filename, int largest_lsm_level);
+    BTreeManager(const std::string& filename, int largest_lsm_level,
+                 BufferPool& buffer_pool);
     int Get(int key);
     int BinarySearchGet(int key) const;
     std::vector<std::pair<int, int>> Scan(int start_key, int end_key);
@@ -24,6 +26,7 @@ class BTreeManager
     std::string filename_;
     int largest_lsm_level_;
     bool remove_tombstones_;
+    BufferPool& buffer_pool_;
     BTreePage ReadPageFromDisk(int page_id, const std::string& filename) const;
 
     std::vector<std::pair<int, int>> TraverseRange(int start_key,
@@ -36,6 +39,8 @@ class BTreeManager
     void WriteLeafPage(std::string& filename,
                        std::vector<std::pair<int, int>>& keys,
                        std::vector<int>& internal_node_max_keys);
+    BTreePage GetPageFromBufferOrDisk(const std::string& filename,
+                                      int page_id) const;
 };
 
 #endif

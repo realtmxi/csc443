@@ -228,5 +228,26 @@ int
 main()
 {
     Part2Experiment();
-    return 0;
+
+    // std::filesystem::remove_all("db");
+
+    // Database db("db", MEMTABLE_SIZE);
+
+    // db.Open();
+
+    // // add 300k key-value pairs
+    // printf("Adding 300k key-value pairs to the database...\n");
+    // for (int i = 0; i < 700000; i++)
+    // {
+    //     db.Put(i, i);
+    // }
+
+    // // get 1000 random keys
+    // printf("Getting 1000 random keys\n");
+    // for (int i = 0; i < 1000; i++)
+    // {
+    //     db.Get(rand() % 300000);
+    // }
+
+    // return 0;
 }

@@ -11,5 +11,7 @@ static constexpr int MAX_PAGE_KV_PAIRS = (PAGE_SIZE - 16) / 8;
 static constexpr int MEMTABLE_SIZE = 1024 * 1024;  // 1MB memtable size
 static constexpr int MAX_KEYS_IN_MEMTABLE = MEMTABLE_SIZE / 8;
 static constexpr int BLOOM_FILTER_BITS = MAX_KEYS_IN_MEMTABLE * 8;
+static constexpr int MAX_BUFFER_POOL_SIZE =
+    10 * 1024 * 1024 / PAGE_SIZE;  // 10MB buffer pool size
 
 constexpr page_id_t INVALID_PAGE_ID = static_cast<page_id_t>(-1);
