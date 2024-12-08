@@ -28,7 +28,7 @@ AssertEqual(int expected, int actual, const char *testName, int &testsPassed,
     }
     else
     {
-        printf("    %s: FAILED: expected %d, got %d\n", testName, expected,
+        printf("    FAILED: %s. expected %d, got %d\n", testName, expected,
                actual);
         testsFailed++;
     }

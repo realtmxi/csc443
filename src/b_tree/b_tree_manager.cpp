@@ -474,7 +474,6 @@ BTreeManager::MergeBTreeFromFile(const std::string &filename_to_merge)
     std::remove(temp_leaf_filename.c_str());
     std::remove(temp_internal_filename.c_str());
 
-    buffer_pool_.EvictAllPages();
     return merge_filename;
 }
 
