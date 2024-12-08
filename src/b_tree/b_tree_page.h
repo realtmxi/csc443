@@ -37,6 +37,7 @@ class BTreePage
     int FindChildPage(int key) const;
 
     int GetMaxKey() const;
+    int GetMinKey() const;
     void WriteToDisk(const std::string& filename) const;
 
     std::vector<std::pair<int, int>> GetKeyValues() const;

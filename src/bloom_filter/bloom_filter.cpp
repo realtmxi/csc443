@@ -80,6 +80,11 @@ void
 BloomFilter::DeserializeFromDisk(const std::string &filename)
 {
     std::ifstream in_file(filename, std::ios::binary);
+    if (!in_file.is_open())
+    {
+        // no Bloom filter file found
+        return;
+    }
     in_file.read(reinterpret_cast<char *>(&num_bits_), sizeof(num_bits_));
     in_file.read(reinterpret_cast<char *>(&num_hashes_), sizeof(num_hashes_));
 

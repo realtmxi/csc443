@@ -6,6 +6,119 @@
 
 #include "database.h"
 #include "include/common/config.h"
+
+void
+Part2Experiment()
+{
+    // For this experiment, we will insert powers of 2 MB of data.
+    // One will be inserted into the DB using the BTree and Buffer Pool,
+    // the other will use the simple SSTable implementation, which stores
+    // equal size files on disk.
+
+    // We are only measuring Gets, so we will insert the data and then
+    // measure the get throughput for each power of 2 MB of data. The
+    // X-axis will be the size of the data in MB, and the Y-axis will be
+    // the throughput in MB/s.
+
+    std::filesystem::remove_all("btree_db");
+    std::filesystem::remove_all("btree_binary_search_db");
+    Database btree_db("btree_db", MEMTABLE_SIZE);
+    Database btree_binary_search_db("btree_binary_search_db", MEMTABLE_SIZE,
+                                    true);
+    btree_db.Open();
+    btree_binary_search_db.Open();
+
+    std::vector<double> btree_throughputs;
+    std::vector<double> sst_throughputs;
+
+    int current_data_mb = 0;
+    int next_record_mb = 1;
+    int total_size_mb = 2048;
+
+    printf("Beginning part 2 experiment.\n");
+    auto start = std::chrono::high_resolution_clock::now();
+
+    while (current_data_mb < total_size_mb)
+    {
+        // Calculate the number of key-value pairs needed to reach the
+        // next_record_mb
+        int num_pairs = (next_record_mb - current_data_mb) * 1000000 / 8;
+
+        // Insert data up to next_record_mb
+        for (int j = 0; j < num_pairs; j++)
+        {
+            int random_key = rand() % (next_record_mb * 1000000 / 8);
+            int random_value = rand();
+            btree_db.Put(random_key, random_value);
+            btree_binary_search_db.Put(random_key, random_value);
+            // print every mb
+            if (j % 100000 == 0)
+            {
+                printf("\n%f%%. ",
+                       static_cast<double>(current_data_mb + j * 8 / 1000000) /
+                           total_size_mb * 100);
+                auto end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> elapsed_seconds = end - start;
+                int minutes = static_cast<int>(elapsed_seconds.count()) / 60;
+                int seconds = static_cast<int>(elapsed_seconds.count()) % 60;
+                printf("Time elapsed: %02d:%02d. ", minutes, seconds);
+                printf("MB inserted: %d", current_data_mb + j * 8 / 1000000);
+            }
+        }
+
+        current_data_mb = next_record_mb;
+        next_record_mb *= 2;
+
+        // get throughput
+        double btree_total_time = 0;
+        double sst_total_time = 0;
+
+        for (int j = 0; j < 100; j++)
+        {
+            int get_key = rand() % (current_data_mb * 1000000 / 8);
+            auto start_btree = std::chrono::high_resolution_clock::now();
+            btree_db.Get(get_key);
+            auto end_btree = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed_btree =
+                end_btree - start_btree;
+            btree_total_time += elapsed_btree.count();
+
+            auto start_sst = std::chrono::high_resolution_clock::now();
+            btree_binary_search_db.Get(get_key);
+            auto end_sst = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed_sst = end_sst - start_sst;
+            sst_total_time += elapsed_sst.count();
+        }
+
+        // get throughputs in MB/s
+        double btree_throughput = (100 * 8.0 / 1000000) / btree_total_time;
+        double sst_throughput = (100 * 8.0 / 1000000) / sst_total_time;
+
+        printf("\nBTree GET Throughput: %f MB/s", btree_throughput);
+        printf("\nBTree BinarySearchGet Throughput: %f MB/s", sst_throughput);
+
+        btree_throughputs.push_back(btree_throughput);
+        sst_throughputs.push_back(sst_throughput);
+    }
+
+    // Write throughput results to a CSV
+    std::ofstream file("part2_results.csv");
+    file << "data_size_mb,btree_throughput,sst_throughput\n";
+    for (int i = 0; i < btree_throughputs.size(); i++)
+    {
+        int size_mb = 1 << i;  // Powers of 2 (1MB, 2MB, 4MB, ...)
+        file << size_mb << "," << btree_throughputs[i] << ","
+             << sst_throughputs[i] << "\n";
+    }
+
+    file.close();
+    btree_db.Close();
+    btree_binary_search_db.Close();
+
+    printf(
+        "\nPart 2 experiment complete. Results written to part2_results.csv\n");
+}
+
 void
 Part3Experiment()
 {
@@ -19,11 +132,12 @@ Part3Experiment()
 
     int current_data_mb = 0;
     int next_record_mb = 1;
+    int total_size_mb = 2048;
 
     printf("Beginning part 3 experiment.\n");
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (current_data_mb < 2048)
+    while (current_data_mb < total_size_mb)
     {
         // Calculate the number of key-value pairs needed to reach the
         // next_record_mb
@@ -39,7 +153,7 @@ Part3Experiment()
             {
                 printf("\n%f%%. ",
                        static_cast<double>(current_data_mb + j * 8 / 1000000) /
-                           2048 * 100);
+                           total_size_mb * 100);
                 auto end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
                 int minutes = static_cast<int>(elapsed_seconds.count()) / 60;
@@ -95,7 +209,7 @@ Part3Experiment()
     file << "data_size_mb,put_throughput,get_throughput,scan_throughput\n";
     for (int i = 0; i < put_throughputs.size(); i++)
     {
-        int size_mb = 1 << i;  // Powers of 2 (1MB, 2MB, 4MB, ...)
+        int size_mb = 1 << i;
         file << size_mb << "," << put_throughputs[i] << ","
              << (get_throughputs.count(size_mb) ? get_throughputs[size_mb] : 0)
              << ","
@@ -113,6 +227,6 @@ Part3Experiment()
 int
 main()
 {
-    Part3Experiment();
+    Part2Experiment();
     return 0;
 }

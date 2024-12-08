@@ -9,8 +9,7 @@
 
 #include "include/common/config.h"
 
-SSTable::SSTable(const std::string& path)
-    : file_path(path), bloom_filter(BLOOM_FILTER_BITS)
+SSTable::SSTable(const std::string& path) : file_path(path)
 {
     struct stat buf;
     if (stat(file_path.c_str(), &buf) != 0)
@@ -21,11 +20,14 @@ SSTable::SSTable(const std::string& path)
     {
         // Dividing the file size by the size of one kv pair.
         num_entries = buf.st_size / (sizeof(int) * 2);
-
-        // Deserialize the Bloom filter associated with this SSTable
-        std::string bloom_filter_file = file_path + ".filter";
-        bloom_filter.DeserializeFromDisk(bloom_filter_file);
     }
+}
+
+SSTable::SSTable(const std::string& path,
+                 const std::vector<std::pair<int, int>>& data)
+    : file_path(path), num_entries(data.size())
+{
+    write(file_path, data);
 }
 
 int
@@ -56,26 +58,12 @@ SSTable::scan(int key1, int key2)
 {
     std::vector<std::pair<int, int>> result;
 
-    // Check if any keys in the range might exist using the Bloom filter
-    bool may_contain = false;
-    for (int key = key1; key <= key2; ++key)
-    {
-        if (bloom_filter.MayContain(key))
-        {
-            may_contain = true;
-            break;
-        }
-    }
-    if (!may_contain)
-    {
-        return result;  // Skip scanning the SST
-    }
-
     int fd = open(file_path.c_str(), O_RDONLY);
     if (fd < 0)
     {
         throw std::runtime_error("Failed to open SSTable file");
     }
+    fcntl(fd, F_NOCACHE, 1);
 
     // Binary search to find the start of the range
     size_t left = 0;
@@ -116,25 +104,9 @@ SSTable::scan(int key1, int key2)
 int
 SSTable::get(int key)
 {
-    // Use the Bloom filter to check if the key might exist
-    static bool bloom_filter_message_printed =
-        false;  // Flag to track message printing
-
-    // Check the Bloom filter before accessing the SST
-    if (!bloom_filter.MayContain(key))
-    {
-        if (!bloom_filter_message_printed)
-        {
-            printf(
-                "Key %d is definitely not in %s (skipped using Bloom filter)\n",
-                key, file_path.c_str());
-            bloom_filter_message_printed = true;
-        }
-        return -1;  // Skip searching the SST
-    }
-
     int fd = open(file_path.c_str(), O_RDONLY);
     if (fd < 0) return -1;
+    fcntl(fd, F_NOCACHE, 1);
 
     size_t left = 0;
     size_t right = num_entries - 1;
@@ -175,9 +147,6 @@ SSTable::write(const std::string& filename,
         throw std::runtime_error("Failed to create SST file: " + filename);
     }
 
-    // Create a Bloom filter for the keys
-    BloomFilter bloom_filter(BLOOM_FILTER_BITS);
-
     // Write each key-value pair to the file
     for (const auto& kv : data)
     {
@@ -185,11 +154,7 @@ SSTable::write(const std::string& filename,
                       sizeof(kv.first));
         outFile.write(reinterpret_cast<const char*>(&kv.second),
                       sizeof(kv.second));
-        bloom_filter.Insert(kv.first);  // Add the key to the Bloom filter
     }
 
     outFile.close();
-
-    // Serialize the Bloom filter to a separate file
-    bloom_filter.SerializeToDisk(filename + ".filter");
 }

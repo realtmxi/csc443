@@ -19,13 +19,14 @@ class SSTable
    private:
     std::string file_path;
     size_t num_entries;
-    BloomFilter bloom_filter;
 
     int readKey(int fd, off_t offset);
     int readValue(int fd, off_t offset);
 
    public:
     SSTable(const std::string& path);
+    SSTable(const std::string& path,
+            const std::vector<std::pair<int, int>>& data);
 
     std::vector<std::pair<int, int>> scan(int key1, int key2);
     int get(int key);

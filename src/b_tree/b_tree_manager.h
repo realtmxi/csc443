@@ -12,6 +12,7 @@ class BTreeManager
    public:
     explicit BTreeManager(const std::string& filename, int largest_lsm_level);
     int Get(int key);
+    int BinarySearchGet(int key) const;
     std::vector<std::pair<int, int>> Scan(int start_key, int end_key);
     // Merge the BTree with another BTree file, return output filename
     std::string Merge(const std::string& filename_to_merge);

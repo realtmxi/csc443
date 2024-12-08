@@ -1,9 +1,14 @@
 #include "b_tree_page.h"
 
+#include <fcntl.h>  // For open, O_DIRECT
 #include <unistd.h>
+#include <unistd.h>  // For close, pwrite
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>  // For posix_memalign
+#include <cstring>  // For memset
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -19,12 +24,12 @@ BTreePage::BTreePage()
 }
 
 // Constructor to build a page from a list of key-value pairs.
-BTreePage::BTreePage(const std::vector<std::pair<int, int>>& key_value_pairs)
+BTreePage::BTreePage(const std::vector<std::pair<int, int>> &key_value_pairs)
     : page_type_(BTreePageType::INVALID_PAGE),
       size_(key_value_pairs.size()),
       page_id_(-1)
 {
-    for (const auto& pair : key_value_pairs)
+    for (const auto &pair : key_value_pairs)
     {
         keys_.push_back(pair.first);
         values_.push_back(pair.second);
@@ -84,55 +89,78 @@ BTreePage::GetPageId() const
 {
     return page_id_;
 }
-
 void
-BTreePage::WriteToDisk(const std::string& filename) const
+BTreePage::WriteToDisk(const std::string &filename) const
 {
-    std::ofstream out_file(filename, std::ios::binary | std::ios::app);
-    if (!out_file.is_open())
+    // Open the file with O_DIRECT and O_CREAT for writing
+    int fd = open(filename.c_str(), O_WRONLY | O_CREAT, 0666);
+    if (fd < 0)
     {
         throw std::runtime_error("Failed to create BTree file: " + filename);
     }
+    fcntl(fd, F_NOCACHE, 1);
 
+    // Allocate aligned memory for the buffer
+    void *aligned_buffer;
+    if (posix_memalign(&aligned_buffer, PAGE_SIZE, PAGE_SIZE) != 0)
+    {
+        close(fd);
+        throw std::runtime_error("Failed to allocate aligned memory");
+    }
+    std::memset(aligned_buffer, 0, PAGE_SIZE);
+
+    std::byte *buffer_ptr = static_cast<std::byte *>(aligned_buffer);
     int bytes_written = 0;
 
-    // Write the page type and size to the binary file
+    // Write the page type to the buffer
     BTreePageType page_type = GetPageType();
-    out_file.write(reinterpret_cast<const char*>(&page_type),
-                   sizeof(page_type));
+    std::memcpy(buffer_ptr, &page_type, sizeof(page_type));
+    buffer_ptr += sizeof(page_type);
     bytes_written += sizeof(page_type);
 
+    // Write the size of the page to the buffer
     int size = GetSize();
-    out_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    std::memcpy(buffer_ptr, &size, sizeof(size));
+    buffer_ptr += sizeof(size);
     bytes_written += sizeof(size);
 
-    // Write the key-value pairs to the binary file
+    // Write the key-value pairs to the buffer
     for (int i = 0; i < GetSize(); i++)
     {
-        out_file.write(reinterpret_cast<const char*>(&keys_[i]),
-                       sizeof(keys_[i]));
-        out_file.write(reinterpret_cast<const char*>(&values_[i]),
-                       sizeof(values_[i]));
-        bytes_written += sizeof(keys_[i]) + sizeof(values_[i]);
+        std::memcpy(buffer_ptr, &keys_[i], sizeof(keys_[i]));
+        buffer_ptr += sizeof(keys_[i]);
+        bytes_written += sizeof(keys_[i]);
+
+        std::memcpy(buffer_ptr, &values_[i], sizeof(values_[i]));
+        buffer_ptr += sizeof(values_[i]);
+        bytes_written += sizeof(values_[i]);
     }
 
-    // Write the child page id for internal nodes (4 bytes)
+    // Write the child page ID for internal nodes (if applicable)
     if (page_type == BTreePageType::INTERNAL_PAGE)
     {
-        out_file.write(reinterpret_cast<const char*>(&values_.back()),
-                       sizeof(values_.back()));
+        std::memcpy(buffer_ptr, &values_.back(), sizeof(values_.back()));
+        buffer_ptr += sizeof(values_.back());
         bytes_written += sizeof(values_.back());
     }
 
-    // Pad the rest of the page with zeros
+    // Zero-pad the rest of the buffer to PAGE_SIZE
     unsigned int num_bytes_to_pad = PAGE_SIZE - bytes_written;
-    char zero = 0;
-    for (size_t i = 0; i < num_bytes_to_pad; i++)
+    std::memset(buffer_ptr, 0, num_bytes_to_pad);
+
+    // Write the aligned buffer to disk
+    ssize_t written =
+        pwrite(fd, aligned_buffer, PAGE_SIZE, lseek(fd, 0, SEEK_END));
+    if (written != PAGE_SIZE)
     {
-        out_file.write(&zero, sizeof(zero));
+        free(aligned_buffer);
+        close(fd);
+        throw std::runtime_error("Failed to write the full page to disk");
     }
 
-    out_file.close();
+    // Clean up
+    free(aligned_buffer);
+    close(fd);
 }
 
 int
@@ -152,12 +180,13 @@ BTreePage::Get(int key) const
 int
 BTreePage::FindChildPage(int key) const
 {
-    // Perform a binary search to find the key closest to the given key and
-    // greater.
-    auto it = std::upper_bound(keys_.begin(), keys_.end(), key);
-    if (it != keys_.end())
+    auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
+
+    // take the child of the first key that is equal to or greater than the
+    // given
+    size_t index = it - keys_.begin();
+    if (it != keys_.end() && key <= *it)
     {
-        size_t index = std::distance(keys_.begin(), it);
         return values_[index];
     }
 
@@ -191,6 +220,12 @@ int
 BTreePage::GetMaxKey() const
 {
     return keys_.back();
+}
+
+int
+BTreePage::GetMinKey() const
+{
+    return keys_.front();
 }
 
 std::vector<std::pair<int, int>>

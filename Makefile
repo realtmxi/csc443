@@ -4,6 +4,16 @@ CC = g++
 # Compiler flags
 CFLAGS = -std=c++17 -Wall -Wextra -O2
 
+TEST_FILES = test/tests.cpp \
+             src/avl_tree.cpp \
+             src/database.cpp \
+             src/memtable.cpp \
+             src/sst.cpp \
+             src/b_tree/b_tree.cpp \
+             src/b_tree/b_tree_page.cpp \
+             src/b_tree/b_tree_manager.cpp \
+             src/bloom_filter/bloom_filter.cpp
+
 # Source and header files
 CFILES = src/main.cpp \
          src/avl_tree.cpp \
@@ -13,8 +23,7 @@ CFILES = src/main.cpp \
          src/b_tree/b_tree_page.cpp \
          src/b_tree/b_tree_manager.cpp \
          src/sst.cpp \
-         src/bloom_filter/bloom_filter.cpp 
-        #  test/tests.cpp
+         src/bloom_filter/bloom_filter.cpp
 
 HFILES = src/avl_tree.h \
          src/database.h \
@@ -29,8 +38,8 @@ HFILES = src/avl_tree.h \
 main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -o main $(CFILES)
 
-tests: $(CFILES) $(HFILES)
-	$(CC) $(CFLAGS) -o tests test/tests.cpp src/avl_tree.cpp src/database.cpp src/memtable.cpp src/sst.cpp src/b_tree/b_tree.cpp src/b_tree/b_tree_page.cpp src/b_tree/b_tree_manager.cpp src/bloom_filter/bloom_filter.cpp
+tests: $(TEST_FILES) $(HFILES)
+	$(CC) $(CFLAGS) -o tests $(TEST_FILES)
 
 clean:
 	rm -f main tests
