@@ -456,13 +456,12 @@ BTreeTests(int &overallPassed, int &overallFailed)
 
 /* Test basic insertion and membership functionality */
 void TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed) {
-    printf("\n\nBLOOM FILTER INSERT AND MEMBERSHIP TESTS\n");
+    printf("\n  INSERT AND MEMBERSHIP\n");
     int testsPassed = 0;
     int testsFailed = 0;
 
     BloomFilter filter(1024);
 
-    printf(" INSERTING KEYS INTO BLOOM FILTER\n");
     filter.Insert(42);
     filter.Insert(84);
     filter.Insert(126);
@@ -477,20 +476,17 @@ void TestBloomFilterInsertAndMembership(int &totalPassed, int &totalFailed) {
 
 /* Test Bloom filter union functionality */
 void TestBloomFilterUnion(int &totalPassed, int &totalFailed) {
-    printf("\n\nBLOOM FILTER UNION TESTS\n");
+    printf("\n  UNION\n");
     int testsPassed = 0;
     int testsFailed = 0;
 
     BloomFilter filter1(1024);
     BloomFilter filter2(1024);
 
-    printf(" INSERTING KEYS INTO BLOOM FILTERS\n");
     filter1.Insert(1);
     filter1.Insert(2);
     filter2.Insert(3);
     filter2.Insert(4);
-
-    printf(" PERFORMING UNION OF TWO BLOOM FILTERS\n");
     filter1.Union(filter2);
 
     AssertEqual(true, filter1.MayContain(1), "Key 1 exists after union", testsPassed, testsFailed);
@@ -504,21 +500,17 @@ void TestBloomFilterUnion(int &totalPassed, int &totalFailed) {
 
 /* Test serialization and deserialization of Bloom filter */
 void TestBloomFilterSerialization(int &totalPassed, int &totalFailed) {
-    printf("\n\nBLOOM FILTER SERIALIZATION TESTS\n");
+    printf("\n  SERIALIZATION\n");
     int testsPassed = 0;
     int testsFailed = 0;
 
     BloomFilter filter(1024);
 
-    printf(" INSERTING KEYS INTO BLOOM FILTER\n");
     filter.Insert(10);
     filter.Insert(20);
     filter.Insert(30);
 
-    printf(" SERIALIZING BLOOM FILTER TO DISK\n");
     filter.SerializeToDisk("bloom_filter_test.filter");
-
-    printf(" DESERIALIZING BLOOM FILTER FROM DISK\n");
     BloomFilter deserializedFilter("bloom_filter_test.filter");
 
     AssertEqual(true, deserializedFilter.MayContain(10), "Key 10 exists after deserialization", testsPassed, testsFailed);
