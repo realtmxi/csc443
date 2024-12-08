@@ -105,7 +105,7 @@ Part2Experiment()
 
     // Write throughput results to a CSV
     std::ofstream file("part2_results.csv");
-    file << "data_size_mb,btree_throughput,sst_throughput\n";
+    file << "data_size_mb,btree_throughput,binary_throughput\n";
     for (int i = 0; i < btree_throughputs.size(); i++)
     {
         int size_mb = 1 << i;  // Powers of 2 (1MB, 2MB, 4MB, ...)
@@ -205,7 +205,7 @@ Part3Experiment()
         // ((8bytes/pair * 100 kv pairs) / 1MB) / time
         double get_throughput = (100 * 8.0 / 1000000) / get_total_time;
         // ((8bytes/pair * 100 scans * 100 kv pairs) / 1MB) / time
-        double scan_throughput = (100 * 8.0 / 1000000) / scan_total_time;
+        double scan_throughput = (100 * 100 * 8.0 / 1000000) / scan_total_time;
 
         printf("\nGet Throughput: %f MB/s", get_throughput);
         printf("\nScan Throughput: %f MB/s", scan_throughput);
@@ -239,7 +239,7 @@ Part3Experiment()
 int
 main()
 {
-    Part2Experiment();
+    // Part2Experiment();
     Part3Experiment();
 
     // std::filesystem::remove_all("db");
