@@ -51,6 +51,7 @@ BloomFilter::Hash(int key, int seed) const
     std::hash<int> hasher;
     return hasher(key ^ seed);
 }
+
 void
 BloomFilter::SerializeToDisk(const std::string &filename) const
 {

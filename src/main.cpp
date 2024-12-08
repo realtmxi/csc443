@@ -207,7 +207,7 @@ Part3Experiment()
     // Write throughput results to a CSV
     std::ofstream file("part3_results.csv");
     file << "data_size_mb,put_throughput,get_throughput,scan_throughput\n";
-    for (int i = 0; i < put_throughputs.size(); i++)
+    for (std::vector<double>::size_type i = 0; i < put_throughputs.size(); i++)
     {
         int size_mb = 1 << i;
         file << size_mb << "," << put_throughputs[i] << ","
