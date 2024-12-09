@@ -1,6 +1,8 @@
 # CSC443 Project Assignment
 Greg Sherman, Patrick Zhou, Murphy Tian
 
+## Report
+You can find our project report at `Project Report.pdf`
 ## Instructions
 ### Running 
 - Run `make main && ./main`
