@@ -315,6 +315,14 @@ void DatabaseWorkflow() {
 
     MeasureTime("Verifying data after reopening", [&]() {
         for (size_t i = 0; i < 10; ++i) {
+            int key = i * 2000;
+            int value = db.Get(key);
+            std::cout << "Key: " << key << ", Value: " << value << std::endl;
+        }
+    });
+
+    MeasureTime("Verifying removed data after opening", [&]() {
+        for (size_t i = 0; i < 10; ++i) {
             int key = i * (numKeys / 10);
             int value = db.Get(key);
             std::cout << "Key: " << key << ", Value: " << (value != -1 ? std::to_string(value) : "Not found") << std::endl;
