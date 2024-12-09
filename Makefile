@@ -27,6 +27,9 @@ SHARED_H_FILES = src/avl_tree.h \
 
 main: $(SHARED_C_FILES) $(SHARED_H_FILES) src/main.cpp
 	$(CC) $(CFLAGS) -o main src/main.cpp $(SHARED_C_FILES)
+    
+workflow: $(SHARED_C_FILES) $(SHARED_H_FILES) src/workflow.cpp
+	$(CC) $(CFLAGS) -o workflow src/workflow.cpp $(SHARED_C_FILES)
 
 tests: $(SHARED_C_FILES) $(SHARED_H_FILES) test/tests.cpp
 	$(CC) $(CFLAGS) -o tests test/tests.cpp $(SHARED_C_FILES)

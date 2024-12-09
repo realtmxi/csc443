@@ -116,7 +116,12 @@ BTreeManager::ReadPageFromDisk(int page_id, const std::string &filename) const
     {
         throw std::runtime_error("Failed to open B-tree file: " + filename);
     }
-    fcntl(fd, F_NOCACHE, 1);
+    #ifdef __APPLE__
+        // macOS-specific code for disabling caching
+        fcntl(fd, F_NOCACHE, 1);
+    #elif defined(__linux__)
+        posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    #endif
 
     // Allocate aligned memory for the buffer
     void *aligned_buffer;
