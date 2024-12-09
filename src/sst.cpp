@@ -63,7 +63,13 @@ SSTable::scan(int key1, int key2)
     {
         throw std::runtime_error("Failed to open SSTable file");
     }
-    fcntl(fd, F_NOCACHE, 1);
+    
+    #ifdef __APPLE__
+        // macOS-specific code for disabling caching
+        fcntl(fd, F_NOCACHE, 1);
+    #elif defined(__linux__)
+        posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    #endif
 
     // Binary search to find the start of the range
     size_t left = 0;
@@ -106,8 +112,14 @@ SSTable::get(int key)
 {
     int fd = open(file_path.c_str(), O_RDONLY);
     if (fd < 0) return -1;
-    fcntl(fd, F_NOCACHE, 1);
 
+    #ifdef __APPLE__
+        // macOS-specific code for disabling caching
+        fcntl(fd, F_NOCACHE, 1);
+    #elif defined(__linux__)
+        posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    #endif
+    
     size_t left = 0;
     size_t right = num_entries - 1;
 
